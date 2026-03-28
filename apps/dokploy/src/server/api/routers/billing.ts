@@ -34,6 +34,13 @@ export const billingRouter = createTRPCRouter({
     });
   }),
 
+  clearPaymentHistory: protectedProcedure.mutation(async ({ ctx }) => {
+    await db
+      .delete(paymentTable)
+      .where(eq(paymentTable.userId, ctx.user.ownerId));
+    return { ok: true as const };
+  }),
+
   createCheckout: protectedProcedure
     .input(
       z.object({

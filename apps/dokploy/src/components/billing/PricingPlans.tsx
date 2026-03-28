@@ -17,6 +17,9 @@ import {
 const cardClassName =
 	"bg-background flex flex-col rounded-xl border border-border shadow-sm";
 
+const planCardButtonClassName =
+	"mt-auto w-full min-w-0 whitespace-normal text-center leading-snug min-h-9 h-auto py-2.5";
+
 /** Текущий отображаемый план: платный тариф только при active/past_due. */
 const isCurrentPlan = (
 	subscription: { plan: string; status: string } | null | undefined,
@@ -117,6 +120,7 @@ export const PricingPlans = () => {
 								))}
 							</ul>
 							<Button
+								className={planCardButtonClassName}
 								disabled={isButtonDisabled}
 								isLoading={isCheckoutLoading}
 								onClick={() => handleSelectPlan(key)}

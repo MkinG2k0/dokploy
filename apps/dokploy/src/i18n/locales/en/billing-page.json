@@ -49,6 +49,12 @@
 		"tableDate": "Date",
 		"tableAmount": "Amount",
 		"tableStatus": "Status",
-		"tableOrderId": "Order ID"
+		"tableOrderId": "Order ID",
+		"clearPaymentHistory": "Clear payment history",
+		"clearPaymentHistoryDialogTitle": "Clear payment history?",
+		"clearPaymentHistoryDialogDescription": "This removes all payment records from your account. Your subscription status is not changed.",
+		"clearPaymentHistoryConfirm": "Clear",
+		"clearPaymentHistorySuccess": "Payment history cleared.",
+		"clearPaymentHistoryError": "Could not clear payment history. Try again."
 	}
 }

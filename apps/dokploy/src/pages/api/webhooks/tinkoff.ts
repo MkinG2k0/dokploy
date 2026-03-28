@@ -227,13 +227,18 @@ export default async function handler(
 		return
 	}
 
-	if (current.status !== 'pending') {
+	const state = await tinkoffPaymentClient.status(paymentId)
+	const status = state.status
+
+	// Возврат приходит, когда в БД уже succeeded; раньше обрабатывались только pending.
+	const isPendingFlow = current.status === 'pending'
+	const isRefundAfterSuccess =
+		current.status === 'succeeded' && status === 'REFUNDED'
+
+	if (!isPendingFlow && !isRefundAfterSuccess) {
 		res.status(200).send('OK')
 		return
 	}
-
-	const state = await tinkoffPaymentClient.status(paymentId)
-	const status = state.status
 
 	if (current.type === 'one_time') {
 		await handleOneTimePayment(current, status)

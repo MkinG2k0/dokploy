@@ -49,6 +49,12 @@
 		"tableDate": "Дата",
 		"tableAmount": "Сумма",
 		"tableStatus": "Статус",
-		"tableOrderId": "Номер заказа"
+		"tableOrderId": "Номер заказа",
+		"clearPaymentHistory": "Очистить историю платежей",
+		"clearPaymentHistoryDialogTitle": "Очистить историю платежей?",
+		"clearPaymentHistoryDialogDescription": "Все записи о платежах в аккаунте будут удалены. Статус подписки не меняется.",
+		"clearPaymentHistoryConfirm": "Очистить",
+		"clearPaymentHistorySuccess": "История платежей очищена.",
+		"clearPaymentHistoryError": "Не удалось очистить историю. Попробуйте снова."
 	}
 }
