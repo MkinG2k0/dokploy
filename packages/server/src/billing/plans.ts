@@ -46,6 +46,5 @@ export const PLANS:Record<PlanName, Plan> = {
 
 export const PERIOD_DAYS = 30 as const;
 
-
 export type PlanKey = keyof typeof PLANS;
 

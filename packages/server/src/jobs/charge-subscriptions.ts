@@ -60,6 +60,7 @@ export const initChargeSubscriptionsCronJobs = async () => {
 				if (result.success) {
 					await db.insert(payment).values({
 						userId: sub.userId,
+						subscriptionId: sub.id,
 						tinkoffPaymentId: result.paymentId,
 						orderId,
 						amount: amountKopek,
@@ -83,6 +84,7 @@ export const initChargeSubscriptionsCronJobs = async () => {
 
 				await db.insert(payment).values({
 					userId: sub.userId,
+					subscriptionId: sub.id,
 					tinkoffPaymentId: result.paymentId,
 					orderId,
 					amount: amountKopek,

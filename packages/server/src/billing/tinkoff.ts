@@ -162,7 +162,7 @@ export const getPaymentStatus = async (
  * verifyWebhookToken(body) → boolean
  * - Проверка подписи входящего вебхука
  */
-export const verifyWebhookToken = (body: Record<string, string>): boolean => {
+export const verifyWebhookToken = (body: Record<string, unknown>): boolean => {
 	return payment.verifyWebhook(body);
 };
 

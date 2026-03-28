@@ -9,13 +9,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
+import {
+	isPaidPlanKey,
+	subscriptionHasPaidEntitlement,
+} from "./billing-display";
+
 const cardClassName =
 	"bg-background flex flex-col rounded-xl border border-border shadow-sm";
 
-const isPaidPlanKey = (plan: string): plan is "pro" | "agency" =>
-	plan === "pro" || plan === "agency";
-
-/** Текущий отображаемый план: без строки в БД = бесплатный уровень; платный — пока подписка не отменена. */
+/** Текущий отображаемый план: платный тариф только при active/past_due. */
 const isCurrentPlan = (
 	subscription: { plan: string; status: string } | null | undefined,
 	key: "free" | "pro" | "agency",
@@ -24,21 +26,12 @@ const isCurrentPlan = (
 		return key === "free";
 	}
 
-	if (isPaidPlanKey(subscription.plan) && subscription.status !== "canceled") {
+	if (subscriptionHasPaidEntitlement(subscription)) {
 		return subscription.plan === key;
 	}
 
 	return key === "free";
 };
-
-const hasUncanceledPaidSubscription = (
-	subscription: { plan: string; status: string } | null | undefined,
-): boolean =>
-	Boolean(
-		subscription &&
-			isPaidPlanKey(subscription.plan) &&
-			subscription.status !== "canceled",
-	);
 
 export const PricingPlans = () => {
 	const t = useTranslations("billing");
@@ -73,7 +66,7 @@ export const PricingPlans = () => {
 		);
 	}
 
-	const paidSubscriptionOpen = hasUncanceledPaidSubscription(subscription);
+	const paidSubscriptionOpen = subscriptionHasPaidEntitlement(subscription);
 
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-3 gap-4">

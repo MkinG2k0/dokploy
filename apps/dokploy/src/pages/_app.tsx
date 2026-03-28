@@ -21,6 +21,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/utils/api";
 import { LocaleContext } from "@/i18n/locale-context";
 import {
+	DEFAULT_INTL_TIME_ZONE,
 	DEFAULT_LOCALE,
 	LOCALE_STORAGE_KEY,
 	type Locale,
@@ -104,7 +105,11 @@ const MyApp = ({
 
 	return (
 		<LocaleContext.Provider value={{ locale, setLocale }}>
-			<NextIntlClientProvider locale={locale} messages={messages}>
+			<NextIntlClientProvider
+				locale={locale}
+				messages={messages}
+				timeZone={DEFAULT_INTL_TIME_ZONE}
+			>
 				<div
 					className={`${geist.variable} ${jetbrainsMono.variable} font-sans`}
 				>

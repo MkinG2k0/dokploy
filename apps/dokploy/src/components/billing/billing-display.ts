@@ -4,6 +4,19 @@ type SubscriptionLike = {
 	cancelAtPeriodEnd: boolean;
 } | null;
 
+export const isPaidPlanKey = (plan: string): plan is "pro" | "agency" =>
+	plan === "pro" || plan === "agency";
+
+/** Платный доступ: активна или просрочена оплата (не «ожидаем оплату чек-аута»). */
+export const subscriptionHasPaidEntitlement = (
+	subscription: { plan: string; status: string } | null | undefined,
+): boolean =>
+	Boolean(
+		subscription &&
+			isPaidPlanKey(subscription.plan) &&
+			(subscription.status === "active" || subscription.status === "past_due"),
+	);
+
 export type SubscriptionUiStatus = "freeTier" | "active" | "past_due" | "canceled";
 
 export type SubscriptionStatusBadgeVariant =

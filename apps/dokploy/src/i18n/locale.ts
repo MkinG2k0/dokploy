@@ -4,6 +4,9 @@ export const LOCALE_STORAGE_KEY = "locale";
 export const DEFAULT_LOCALE: Locale = "ru";
 export const FALLBACK_LOCALE: Locale = "en";
 
+/** IANA zone for next-intl; without it, useTranslations can throw ENVIRONMENT_FALLBACK on SSR/build. */
+export const DEFAULT_INTL_TIME_ZONE = "UTC";
+
 export const isLocale = (value: unknown): value is Locale =>
 	value === "ru" || value === "en";
 

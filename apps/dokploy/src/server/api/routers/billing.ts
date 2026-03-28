@@ -1,25 +1,17 @@
-import {
-  PERIOD_DAYS,
-  PLANS,
-  type PlanKey,
-} from "@dokploy/server/billing/plans";
+import { PERIOD_DAYS, PLANS, type PlanKey } from "@dokploy/server/billing/plans";
 import { payment } from "@dokploy/server/billing/payment";
 import { db } from "@dokploy/server/db";
-import { subscription as subscriptionTable } from "@dokploy/server/db/schema";
-import { payment as paymentTable } from "@dokploy/server/db/schema";
+import {
+  payment as paymentTable,
+  subscription as subscriptionTable,
+} from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { addDays } from "date-fns";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-
-const findPlanByAmount = (amountKopek: number): PlanKey => {
-  if (amountKopek === PLANS.agency.price) return "agency";
-  if (amountKopek === PLANS.pro.price) return "pro";
-  return "pro";
-};
 
 export const billingRouter = createTRPCRouter({
   getPlans: protectedProcedure.query(() => {
@@ -71,8 +63,37 @@ export const billingRouter = createTRPCRouter({
         // recurrent: true,
       });
 
+      const now = new Date();
+      const [subscriptionRow] = await db
+        .insert(subscriptionTable)
+        .values({
+          userId: ctx.user.ownerId,
+          plan: planKey,
+          status: "pending_payment",
+          cancelAtPeriodEnd: false,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: subscriptionTable.userId,
+          set: {
+            plan: planKey,
+            status: "pending_payment",
+            cancelAtPeriodEnd: false,
+            updatedAt: now,
+          },
+        })
+        .returning({ id: subscriptionTable.id });
+
+      if (!subscriptionRow) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not create subscription for checkout",
+        });
+      }
+
       await db.insert(paymentTable).values({
         userId: ctx.user.ownerId,
+        subscriptionId: subscriptionRow.id,
         tinkoffPaymentId: paymentId,
         orderId,
         amount: plan.price,
@@ -107,7 +128,27 @@ export const billingRouter = createTRPCRouter({
         await payment.confirm(paymentId);
       }
 
-      const plan = findPlanByAmount(latestPending.amount);
+      const checkoutSub = latestPending.subscriptionId
+        ? await db.query.subscription.findFirst({
+            where: eq(subscriptionTable.id, latestPending.subscriptionId),
+          })
+        : (
+            await db
+              .select()
+              .from(subscriptionTable)
+              .where(
+                and(
+                  eq(subscriptionTable.userId, latestPending.userId),
+                  eq(subscriptionTable.status, "pending_payment"),
+                ),
+              )
+              .orderBy(desc(subscriptionTable.updatedAt))
+              .limit(1)
+          )[0];
+
+      if (!checkoutSub) {
+        return { status: "pending" as const };
+      }
 
       await db
         .update(paymentTable)
@@ -115,26 +156,16 @@ export const billingRouter = createTRPCRouter({
         .where(eq(paymentTable.id, latestPending.id));
 
       await db
-        .insert(subscriptionTable)
-        .values({
-          userId: latestPending.userId,
-          plan,
+        .update(subscriptionTable)
+        .set({
+          plan: checkoutSub.plan,
           status: "active",
           tinkoffCustomerKey: latestPending.userId,
           currentPeriodEnd: addDays(now, PERIOD_DAYS),
           cancelAtPeriodEnd: false,
           updatedAt: now,
         })
-        .onConflictDoUpdate({
-          target: subscriptionTable.userId,
-          set: {
-            plan,
-            status: "active",
-            currentPeriodEnd: addDays(now, PERIOD_DAYS),
-            cancelAtPeriodEnd: false,
-            updatedAt: now,
-          },
-        });
+        .where(eq(subscriptionTable.userId, latestPending.userId));
 
       return { status: "confirmed" as const };
     }
@@ -144,6 +175,20 @@ export const billingRouter = createTRPCRouter({
         .update(paymentTable)
         .set({ status: "failed" })
         .where(eq(paymentTable.id, latestPending.id));
+
+      const subAfterFail = await db.query.subscription.findFirst({
+        where: eq(subscriptionTable.userId, latestPending.userId),
+      });
+      if (subAfterFail?.status === "pending_payment") {
+        await db
+          .update(subscriptionTable)
+          .set({
+            plan: "free",
+            status: "active",
+            updatedAt: now,
+          })
+          .where(eq(subscriptionTable.userId, latestPending.userId));
+      }
 
       return { status: "failed" as const };
     }
