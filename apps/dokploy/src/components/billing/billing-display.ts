@@ -7,6 +7,13 @@ type SubscriptionLike = {
 export const isPaidPlanKey = (plan: string): plan is "pro" | "agency" =>
 	plan === "pro" || plan === "agency";
 
+/** Порядок тарифов для сравнения (даунгрейд в UI запрещён). */
+export const planTierRank = (key: "free" | "pro" | "agency"): number => {
+	if (key === "agency") return 2;
+	if (key === "pro") return 1;
+	return 0;
+};
+
 /** Платный доступ: активна или просрочена оплата (не «ожидаем оплату чек-аута»). */
 export const subscriptionHasPaidEntitlement = (
 	subscription: { plan: string; status: string } | null | undefined,
