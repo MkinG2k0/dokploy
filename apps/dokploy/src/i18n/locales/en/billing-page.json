@@ -56,6 +56,35 @@
 		"clearPaymentHistoryDialogDescription": "This removes all payment records from your account. Your subscription status is not changed.",
 		"clearPaymentHistoryConfirm": "Clear",
 		"clearPaymentHistorySuccess": "Payment history cleared.",
-		"clearPaymentHistoryError": "Could not clear payment history. Try again."
+		"clearPaymentHistoryError": "Could not clear payment history. Try again.",
+		"cancelConfirmTitle": "Turn off auto-renewal?",
+		"cancelConfirmDescription": "Your subscription stays active until {date}. After that, automatic charges stop.",
+		"cancelConfirmDateUnknown": "the end of the paid period",
+		"cancelConfirmBack": "Back",
+		"cancelConfirmAction": "Turn off auto-renewal",
+		"checkoutModal": {
+			"title": "Checkout: {plan}",
+			"subtitle": "Choose how you pay and confirm the terms before you continue to payment.",
+			"tabOneTime": "One-time",
+			"tabRecurring": "Auto-renewal",
+			"oneTimeHint": "Single payment for one month of access. No automatic charges after the period ends.",
+			"recurringHint": "Charged every 30 days until you cancel in billing settings.",
+			"checkboxOneTimeLabel": "I agree to the one-time charge",
+			"checkboxOneTimeDescription": "I authorize a one-time charge of {price} ₽ for {plan} access for 1 month. There will be no automatic charges.",
+			"checkboxRecurringChargeLabel": "I agree to automatic charges",
+			"checkboxRecurringChargeDescription": "I authorize monthly charges of {price} ₽ until I cancel. The first charge is today.",
+			"checkboxCancelHowtoLabel": "I understand how to cancel",
+			"checkboxCancelHowtoDescription": "You can turn off auto-renewal anytime under Billing → Cancel subscription (settings → billing).",
+			"infoOneTime": "Next charge: none. After the period ends, paid access ends automatically.",
+			"infoRecurring": "Next charge: in 30 days. You can cancel anytime under Billing.",
+			"pay": "Pay",
+			"terms": "Terms of use",
+			"privacy": "Privacy policy",
+			"termsUrl": "https://deploy-box.ru",
+			"privacyUrl": "https://deploy-box.ru",
+			"supportRefund": "Refunds: support@deploy-box.ru",
+			"legalNavLabel": "Legal links and contact",
+			"checkoutError": "Could not start checkout. Check your T‑Kassa settings and try again."
+		}
 	}
 }

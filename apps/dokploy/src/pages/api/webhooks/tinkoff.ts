@@ -1,13 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
-import { addDays } from 'date-fns'
+import { logger } from '@dokploy/server'
 import type { PlanKey } from '@dokploy/server/billing/plans'
+import { addSubscriptionPeriodEnd } from '@dokploy/server/billing/subscription-period'
 import { payment as tinkoffPaymentClient } from '@dokploy/server/billing/payment'
 import { db } from '@dokploy/server/db'
 import { payment, subscription, user } from '@dokploy/server/db/schema'
 import { eq } from 'drizzle-orm'
 
-const PERIOD_DAYS = 30
 const BASE_SERVERS_QUANTITY = 1 as const
 const SERVERS_QUANTITY_BY_PLAN: Record<PlanKey, number> = {
 	free: BASE_SERVERS_QUANTITY,
@@ -53,7 +53,13 @@ const handleSubscriptionPayment = async (
 		const paymentId = current.tinkoffPaymentId
 		if (!paymentId) return
 		const isConfirmed = await tinkoffPaymentClient.confirm(paymentId)
-		if (!isConfirmed) return
+		if (!isConfirmed) {
+			logger.warn(
+				{paymentId, paymentRowId: current.id},
+				'Tinkoff webhook: Confirm не прошёл, платёж останется pending до следующего уведомления или сверки',
+			)
+			return
+		}
 	}
 
 	if (status === 'AUTHORIZED' || status === 'CONFIRMED') {
@@ -69,6 +75,7 @@ const handleSubscriptionPayment = async (
 		}
 		const planKey = subRow.plan
 		const now = new Date()
+		const periodBase = subRow.currentPeriodEnd ?? now
 
 		await db
 			.update(payment)
@@ -83,8 +90,9 @@ const handleSubscriptionPayment = async (
 				status: 'active',
 				rebillId: getRebillId(body),
 				tinkoffCustomerKey: customerKeyFromBody(body),
-				currentPeriodEnd: addDays(now, PERIOD_DAYS),
+				currentPeriodEnd: addSubscriptionPeriodEnd(periodBase),
 				cancelAtPeriodEnd: false,
+				autoRenew: true,
 				updatedAt: now,
 			})
 			.onConflictDoUpdate({
@@ -94,8 +102,9 @@ const handleSubscriptionPayment = async (
 					status: 'active',
 					rebillId: getRebillId(body),
 					tinkoffCustomerKey: customerKeyFromBody(body),
-					currentPeriodEnd: addDays(now, PERIOD_DAYS),
+					currentPeriodEnd: addSubscriptionPeriodEnd(periodBase),
 					cancelAtPeriodEnd: false,
+					autoRenew: true,
 					updatedAt: now,
 				},
 			})
@@ -120,6 +129,7 @@ const handleSubscriptionPayment = async (
 				.set({
 					plan: 'free',
 					status: 'active',
+					autoRenew: true,
 					updatedAt: new Date(),
 				})
 				.where(eq(subscription.userId, current.userId))
@@ -154,24 +164,69 @@ const handleSubscriptionPayment = async (
 const handleOneTimePayment = async (
 	current: CurrentPayment,
 	status: string,
+	body: Record<string, unknown>,
 ) => {
+	const sid = current.subscriptionId
+	if (!sid) {
+		throw new Error('Payment missing subscriptionId')
+	}
+
 	if (status === 'AUTHORIZED') {
 		const paymentId = current.tinkoffPaymentId
 		if (!paymentId) return
 		const isConfirmed = await tinkoffPaymentClient.confirm(paymentId)
-		if (!isConfirmed) return
-		await db
-			.update(payment)
-			.set({status: 'succeeded'})
-			.where(eq(payment.id, current.id))
-		return
+		if (!isConfirmed) {
+			logger.warn(
+				{paymentId, paymentRowId: current.id},
+				'Tinkoff webhook (one_time): Confirm не прошёл',
+			)
+			return
+		}
 	}
 
-	if (status === 'CONFIRMED') {
+	if (status === 'AUTHORIZED' || status === 'CONFIRMED') {
+		const subRow = await db.query.subscription.findFirst({
+			where: eq(subscription.id, sid),
+		})
+		if (!subRow) {
+			throw new Error('Subscription not found for one_time payment')
+		}
+		const planKey = subRow.plan
+		const now = new Date()
+
 		await db
 			.update(payment)
 			.set({status: 'succeeded'})
 			.where(eq(payment.id, current.id))
+
+		await db
+			.insert(subscription)
+			.values({
+				userId: current.userId,
+				plan: planKey,
+				status: 'active',
+				rebillId: null,
+				tinkoffCustomerKey: customerKeyFromBody(body),
+				currentPeriodEnd: addSubscriptionPeriodEnd(now),
+				cancelAtPeriodEnd: false,
+				autoRenew: false,
+				updatedAt: now,
+			})
+			.onConflictDoUpdate({
+				target: subscription.userId,
+				set: {
+					plan: planKey,
+					status: 'active',
+					rebillId: null,
+					tinkoffCustomerKey: customerKeyFromBody(body),
+					currentPeriodEnd: addSubscriptionPeriodEnd(now),
+					cancelAtPeriodEnd: false,
+					autoRenew: false,
+					updatedAt: now,
+				},
+			})
+
+		await updateUserServersQuantityByPlan(current.userId, planKey)
 		return
 	}
 
@@ -180,6 +235,21 @@ const handleOneTimePayment = async (
 			.update(payment)
 			.set({status: 'failed'})
 			.where(eq(payment.id, current.id))
+
+		const userSub = await db.query.subscription.findFirst({
+			where: eq(subscription.userId, current.userId),
+		})
+		if (userSub?.status === 'pending_payment') {
+			await db
+				.update(subscription)
+				.set({
+					plan: 'free',
+					status: 'active',
+					autoRenew: true,
+					updatedAt: new Date(),
+				})
+				.where(eq(subscription.userId, current.userId))
+		}
 		return
 	}
 
@@ -241,7 +311,7 @@ export default async function handler(
 	}
 
 	if (current.type === 'one_time') {
-		await handleOneTimePayment(current, status)
+		await handleOneTimePayment(current, status, body)
 	} else {
 		await handleSubscriptionPayment(current, status, body)
 	}

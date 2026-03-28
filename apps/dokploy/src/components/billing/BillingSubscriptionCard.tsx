@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { format } from "date-fns";
 import { enUS } from "date-fns/locale/en-US";
 import { ru as ruDateLocale } from "date-fns/locale/ru";
@@ -9,6 +11,15 @@ import {
 	subscriptionStatusBadgeVariant,
 	subscriptionUiStatus,
 } from "@/components/billing/billing-display";
+import {
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,6 +63,7 @@ export const BillingSubscriptionCard = ({
 }: BillingSubscriptionCardProps) => {
 	const t = useTranslations("billing");
 	const locale = useLocale();
+	const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 	const uiStatus = subscriptionUiStatus(subscription);
 	const planKey = effectivePlanKey(subscription);
 	const cancelMode = cancelButtonMode(subscription);
@@ -78,6 +90,20 @@ export const BillingSubscriptionCard = ({
 
 	const cancelDisabled = cancelMode !== "cancel" || isCancelLoading;
 	const showCancelTooltip = cancelDisabled && Boolean(cancelTooltip);
+
+	const cancelConfirmDate =
+		renewalFormatted ?? t("cancelConfirmDateUnknown");
+
+	const handleOpenCancelDialog = () => {
+		if (cancelMode === "cancel" && !isCancelLoading) {
+			setIsCancelDialogOpen(true);
+		}
+	};
+
+	const handleConfirmCancel = async () => {
+		await onCancel();
+		setIsCancelDialogOpen(false);
+	};
 
 	return (
 		<Card className="bg-background">
@@ -112,33 +138,58 @@ export const BillingSubscriptionCard = ({
 					</div>
 				</div>
 				<div className="pt-1">
-					<TooltipProvider delayDuration={200}>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<span
-									className={cn(
-										"inline-flex w-full sm:w-auto",
-										cancelDisabled && "cursor-default",
-									)}
-								>
-									<Button
-										variant="outline"
-										className="w-full sm:w-auto"
-										disabled={cancelDisabled}
-										isLoading={isCancelLoading}
-										onClick={onCancel}
+					<AlertDialog
+						open={isCancelDialogOpen}
+						onOpenChange={setIsCancelDialogOpen}
+					>
+						<TooltipProvider delayDuration={200}>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<span
+										className={cn(
+											"inline-flex w-full sm:w-auto",
+											cancelDisabled && "cursor-default",
+										)}
 									>
-										{cancelLabel}
-									</Button>
-								</span>
-							</TooltipTrigger>
-							{showCancelTooltip ? (
-								<TooltipContent side="top" className="max-w-xs">
-									<p>{cancelTooltip}</p>
-								</TooltipContent>
-							) : null}
-						</Tooltip>
-					</TooltipProvider>
+										<Button
+											variant="outline"
+											className="w-full sm:w-auto"
+											disabled={cancelDisabled}
+											isLoading={isCancelLoading}
+											onClick={handleOpenCancelDialog}
+										>
+											{cancelLabel}
+										</Button>
+									</span>
+								</TooltipTrigger>
+								{showCancelTooltip ? (
+									<TooltipContent side="top" className="max-w-xs">
+										<p>{cancelTooltip}</p>
+									</TooltipContent>
+								) : null}
+							</Tooltip>
+						</TooltipProvider>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>{t("cancelConfirmTitle")}</AlertDialogTitle>
+								<AlertDialogDescription>
+									{t("cancelConfirmDescription", {
+										date: cancelConfirmDate,
+									})}
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>{t("cancelConfirmBack")}</AlertDialogCancel>
+								<Button
+									disabled={isCancelLoading}
+									isLoading={isCancelLoading}
+									onClick={() => void handleConfirmCancel()}
+								>
+									{t("cancelConfirmAction")}
+								</Button>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</div>
 			</CardContent>
 		</Card>

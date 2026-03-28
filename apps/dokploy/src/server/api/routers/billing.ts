@@ -1,4 +1,10 @@
-import { PERIOD_DAYS, PLANS, type PlanKey } from "@dokploy/server/billing/plans";
+import { addSubscriptionPeriodEnd } from "@dokploy/server/billing/subscription-period";
+import {
+  PLANS,
+  getEffectivePlanPrices,
+  getPlansForDisplay,
+  type PlanKey,
+} from "@dokploy/server/billing/plans";
 import { payment } from "@dokploy/server/billing/payment";
 import { db } from "@dokploy/server/db";
 import {
@@ -8,14 +14,13 @@ import {
 import { TRPCError } from "@trpc/server";
 import { eq, desc, and } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
-import { addDays } from "date-fns";
 import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 
 export const billingRouter = createTRPCRouter({
   getPlans: protectedProcedure.query(() => {
-    return PLANS;
+    return getPlansForDisplay();
   }),
 
   getSubscription: protectedProcedure.query(async ({ ctx }) => {
@@ -45,6 +50,7 @@ export const billingRouter = createTRPCRouter({
     .input(
       z.object({
         plan: z.enum(["free", "pro", "agency"]),
+        billingType: z.enum(["one_time", "recurring"]).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -59,15 +65,31 @@ export const billingRouter = createTRPCRouter({
         return { paymentUrl: "" };
       }
 
+      if (input.billingType === undefined) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "billingType is required for paid plans",
+        });
+      }
+
+      const isRecurring = input.billingType === "recurring";
+      const paymentRowType = isRecurring ? "subscription" : "one_time";
+
+      const { price: amountKopek, priceMonthly: amountRub } =
+        getEffectivePlanPrices(planKey);
+
       const orderId = createId();
-      const amountRub = plan.priceMonthly;
+
+      const description = isRecurring
+        ? `DeployBox ${plan.name} — автопродление`
+        : `DeployBox ${plan.name} — разовый платёж`;
 
       const { paymentUrl, paymentId } = await payment.init({
         amount: amountRub,
         orderId,
-        description: `DeployBox ${plan.name}`,
+        description,
         userId: ctx.user.ownerId,
-        // recurrent: true,
+        recurrent: isRecurring,
       });
 
       const now = new Date();
@@ -78,6 +100,7 @@ export const billingRouter = createTRPCRouter({
           plan: planKey,
           status: "pending_payment",
           cancelAtPeriodEnd: false,
+          autoRenew: isRecurring,
           updatedAt: now,
         })
         .onConflictDoUpdate({
@@ -86,6 +109,7 @@ export const billingRouter = createTRPCRouter({
             plan: planKey,
             status: "pending_payment",
             cancelAtPeriodEnd: false,
+            autoRenew: isRecurring,
             updatedAt: now,
           },
         })
@@ -103,10 +127,12 @@ export const billingRouter = createTRPCRouter({
         subscriptionId: subscriptionRow.id,
         tinkoffPaymentId: paymentId,
         orderId,
-        amount: plan.price,
+        amount: amountKopek,
         currency: "RUB",
+        type: paymentRowType,
+        metadata: { billingType: input.billingType },
         status: "pending",
-        description: `DeployBox ${plan.name}`,
+        description,
       });
 
       return { paymentUrl };
@@ -162,13 +188,21 @@ export const billingRouter = createTRPCRouter({
         .set({ status: "succeeded" })
         .where(eq(paymentTable.id, latestPending.id));
 
+      const isOneTime = latestPending.type === "one_time";
+
       await db
         .update(subscriptionTable)
         .set({
           plan: checkoutSub.plan,
           status: "active",
           tinkoffCustomerKey: latestPending.userId,
-          currentPeriodEnd: addDays(now, PERIOD_DAYS),
+          autoRenew: !isOneTime,
+          ...(isOneTime
+            ? { rebillId: null }
+            : state.rebillId !== undefined && state.rebillId !== ""
+              ? { rebillId: state.rebillId }
+              : {}),
+          currentPeriodEnd: addSubscriptionPeriodEnd(now),
           cancelAtPeriodEnd: false,
           updatedAt: now,
         })
@@ -192,6 +226,7 @@ export const billingRouter = createTRPCRouter({
           .set({
             plan: "free",
             status: "active",
+            autoRenew: true,
             updatedAt: now,
           })
           .where(eq(subscriptionTable.userId, latestPending.userId));

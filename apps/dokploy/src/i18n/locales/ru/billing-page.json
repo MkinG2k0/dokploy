@@ -56,6 +56,35 @@
 		"clearPaymentHistoryDialogDescription": "Все записи о платежах в аккаунте будут удалены. Статус подписки не меняется.",
 		"clearPaymentHistoryConfirm": "Очистить",
 		"clearPaymentHistorySuccess": "История платежей очищена.",
-		"clearPaymentHistoryError": "Не удалось очистить историю. Попробуйте снова."
+		"clearPaymentHistoryError": "Не удалось очистить историю. Попробуйте снова.",
+		"cancelConfirmTitle": "Отменить автопродление?",
+		"cancelConfirmDescription": "Подписка останется активной до {date}. После этой даты автоматические списания прекратятся.",
+		"cancelConfirmDateUnknown": "конца оплаченного периода",
+		"cancelConfirmBack": "Назад",
+		"cancelConfirmAction": "Отменить автопродление",
+		"checkoutModal": {
+			"title": "Оформление: {plan}",
+			"subtitle": "Выберите тип оплаты и подтвердите условия перед переходом к оплате.",
+			"tabOneTime": "Разово",
+			"tabRecurring": "Автопродление",
+			"oneTimeHint": "Один платёж на месяц доступа. После окончания периода автосписаний не будет.",
+			"recurringHint": "Списание раз в 30 дней до отмены в настройках биллинга.",
+			"checkboxOneTimeLabel": "Согласен с разовым платежом",
+			"checkboxOneTimeDescription": "Подтверждаю списание {price} ₽ за доступ к плану {plan} на 1 месяц. Автоматических списаний не будет.",
+			"checkboxRecurringChargeLabel": "Согласен на автоматические списания",
+			"checkboxRecurringChargeDescription": "Подтверждаю ежемесячное списание {price} ₽ до отмены подписки. Первое списание — сегодня.",
+			"checkboxCancelHowtoLabel": "Понимаю, как отменить подписку",
+			"checkboxCancelHowtoDescription": "Отменить автопродление можно в любое время в разделе «Биллинг» → «Отменить подписку» (настройки → биллинг).",
+			"infoOneTime": "Следующий платёж: нет. После окончания периода доступ к платным функциям истечёт автоматически.",
+			"infoRecurring": "Следующий платёж: через 30 дней. Отменить можно в любое время в разделе «Биллинг».",
+			"pay": "Оплатить",
+			"terms": "Условия использования",
+			"privacy": "Политика конфиденциальности",
+			"termsUrl": "https://deploy-box.ru",
+			"privacyUrl": "https://deploy-box.ru",
+			"supportRefund": "Контакт для возврата: support@deploy-box.ru",
+			"legalNavLabel": "Юридические ссылки и контакты",
+			"checkoutError": "Не удалось запустить оплату. Проверьте настройки Т‑Кассы и попробуйте снова."
+		}
 	}
 }

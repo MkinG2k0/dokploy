@@ -1,0 +1,1 @@
+ALTER TABLE "subscription" ADD COLUMN "autoRenew" boolean DEFAULT true NOT NULL;

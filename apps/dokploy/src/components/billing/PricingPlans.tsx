@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import {
 	planTierRank,
 	subscriptionHasPaidEntitlement,
 } from "./billing-display";
+import { SubscriptionCheckoutModal } from "./SubscriptionCheckoutModal";
 
 const cardClassName =
 	"bg-background flex flex-col rounded-xl border border-border shadow-sm";
@@ -50,15 +52,27 @@ export const PricingPlans = () => {
 	const { mutateAsync: createCheckout, isPending: isCheckoutLoading } =
 		api.billing.createCheckout.useMutation();
 
+	const [paidCheckoutPlan, setPaidCheckoutPlan] = useState<
+		"pro" | "agency" | null
+	>(null);
+
 	const orderedKeys = useMemo(() => {
 		return plans ? (Object.keys(plans) as Array<keyof typeof plans>) : [];
 	}, [plans]);
 
-	const handleSelectPlan = async (plan: "free" | "pro" | "agency") => {
-		const {paymentUrl} = await createCheckout({ plan });
-
-		window.location.href = paymentUrl;
-
+	const handleSelectPlan = async (planKey: "free" | "pro" | "agency") => {
+		if (planKey === "free") {
+			try {
+				const { paymentUrl } = await createCheckout({ plan: planKey });
+				if (paymentUrl) {
+					window.location.href = paymentUrl;
+				}
+			} catch {
+				toast.error(t("checkoutStartError"));
+			}
+			return;
+		}
+		setPaidCheckoutPlan(planKey);
 	}; 
 
 	if (isPlansLoading) {
@@ -77,8 +91,21 @@ export const PricingPlans = () => {
 
 	const paidSubscriptionOpen = subscriptionHasPaidEntitlement(subscription);
 
+	const paidModalPlan = paidCheckoutPlan
+		? plans[paidCheckoutPlan]
+		: undefined;
+
 	return (
 		<TooltipProvider>
+			{paidCheckoutPlan && paidModalPlan ? (
+				<SubscriptionCheckoutModal
+					plan={paidCheckoutPlan}
+					isOpen
+					planDisplayName={paidModalPlan.name}
+					priceMonthly={paidModalPlan.priceMonthly}
+					onClose={() => setPaidCheckoutPlan(null)}
+				/>
+			) : null}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 				{orderedKeys.map((key) => {
 					const plan = plans[key];

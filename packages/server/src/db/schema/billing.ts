@@ -33,6 +33,8 @@ export const subscription = pgTable("subscription", {
 	tinkoffCustomerKey: text("tinkoffCustomerKey"),
 	currentPeriodEnd: timestamp("currentPeriodEnd"),
 	cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").notNull().default(false),
+	/** false = разовый доступ на период без рекуррента; true = автопродление (Charge). */
+	autoRenew: boolean("autoRenew").notNull().default(true),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
