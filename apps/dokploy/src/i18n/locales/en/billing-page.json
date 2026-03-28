@@ -83,6 +83,7 @@
 			"termsUrl": "https://deploy-box.ru",
 			"privacyUrl": "https://deploy-box.ru",
 			"supportRefund": "Refunds: support@deploy-box.ru",
+			"supportRefundTelegram": "Refunds: Telegram {handle}",
 			"legalNavLabel": "Legal links and contact",
 			"checkoutError": "Could not start checkout. Check your T‑Kassa settings and try again."
 		}

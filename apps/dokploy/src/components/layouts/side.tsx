@@ -85,6 +85,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import { authClient } from "@/lib/auth-client";
+import { getBillingRefundTelegramHref } from "@/lib/billing-refund-telegram";
 import { cn } from "@/lib/utils";
 import type { AppRouter } from "@/server/api/root";
 import { api } from "@/utils/api";
@@ -347,8 +348,8 @@ const MENU: Menu = {
 			icon: BookOpen,
 		},
 		{
-			name: "help.support",	
-			url: "https://t.me/double_cumboy",
+			name: "help.support",
+			url: "mailto:support@deploy-box.ru",
 			icon: MessageCircle,
 		},
 	],
@@ -384,13 +385,20 @@ function createMenuForAuthUser(opts: {
 				: (item.isEnabled ?? true),
 		) as T[];
 
-	// Apply whitelabeling URL overrides to help items
+	// Apply whitelabeling URL overrides to help items; поддержка — Telegram из env приоритетнее дефолта
 	const helpItems = filterEnabled(MENU.help).map((item) => {
 		if (opts.whitelabeling?.docsUrl && item.name === "help.documentation") {
 			return { ...item, url: opts.whitelabeling.docsUrl };
 		}
-		if (opts.whitelabeling?.supportUrl && item.name === "help.support") {
-			return { ...item, url: opts.whitelabeling.supportUrl };
+		if (item.name === "help.support") {
+			if (opts.whitelabeling?.supportUrl) {
+				return { ...item, url: opts.whitelabeling.supportUrl };
+			}
+			const telegramHref = getBillingRefundTelegramHref();
+			if (telegramHref) {
+				return { ...item, url: telegramHref };
+			}
+			return item;
 		}
 		return item;
 	});

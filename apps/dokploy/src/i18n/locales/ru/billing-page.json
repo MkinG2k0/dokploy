@@ -83,6 +83,7 @@
 			"termsUrl": "https://deploy-box.ru",
 			"privacyUrl": "https://deploy-box.ru",
 			"supportRefund": "Контакт для возврата: support@deploy-box.ru",
+			"supportRefundTelegram": "Контакт для возврата: Telegram {handle}",
 			"legalNavLabel": "Юридические ссылки и контакты",
 			"checkoutError": "Не удалось запустить оплату. Проверьте настройки Т‑Кассы и попробуйте снова."
 		}

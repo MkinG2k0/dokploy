@@ -16,6 +16,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	getBillingRefundTelegramHandle,
+	getBillingRefundTelegramHref,
+} from "@/lib/billing-refund-telegram";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
@@ -101,22 +105,25 @@ export const SubscriptionCheckoutModal = ({
   const canPay =
     agreedToCharge && (billingType === "one_time" || agreedToCancellation);
 
-  const handlePay = async () => {
-    if (!canPay) return;
-    try {
-      const { paymentUrl } = await createCheckout({
-        plan,
-        billingType,
-      });
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-      }
-    } catch {
-      toast.error(t("checkoutError"));
-    }
-  };
+	const handlePay = async () => {
+		if (!canPay) return;
+		try {
+			const { paymentUrl } = await createCheckout({
+				plan,
+				billingType,
+			});
+			if (paymentUrl) {
+				window.location.href = paymentUrl;
+			}
+		} catch {
+			toast.error(t("checkoutError"));
+		}
+	};
 
-  return (
+	const refundTelegramHref = getBillingRefundTelegramHref();
+	const refundTelegramHandle = getBillingRefundTelegramHandle();
+
+	return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className={cn(
@@ -253,12 +260,23 @@ export const SubscriptionCheckoutModal = ({
                 {t("privacy")}
               </a>
             </div>
-            <a
-              href="mailto:support@deploy-box.ru"
-              className="w-fit rounded-sm px-1 py-0.5 text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {t("supportRefund")}
-            </a>
+            {refundTelegramHref ? (
+              <a
+                href={refundTelegramHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-fit rounded-sm px-1 py-0.5 text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {t("supportRefundTelegram", { handle: refundTelegramHandle })}
+              </a>
+            ) : (
+              <a
+                href="mailto:support@deploy-box.ru"
+                className="w-fit rounded-sm px-1 py-0.5 text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {t("supportRefund")}
+              </a>
+            )}
           </nav>
         </DialogFooter>
       </DialogContent>
