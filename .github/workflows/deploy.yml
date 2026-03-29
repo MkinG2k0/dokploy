@@ -38,10 +38,10 @@ jobs:
           push: true
           tags: ${{ steps.meta-cloud.outputs.tags }}
           platforms: linux/amd64
+          # Stripe build-arg removed (T‑Bank/Tinkoff billing). Comments belong here, not inside build-args (| passes lines literally to Docker).
           build-args: |
             NEXT_PUBLIC_UMAMI_HOST=${{ secrets.NEXT_PUBLIC_UMAMI_HOST }}
             NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ secrets.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
-            # Stripe removed (migrated to T‑Kasса)
 
   build-and-push-schedule-image:
     runs-on: ubuntu-latest
