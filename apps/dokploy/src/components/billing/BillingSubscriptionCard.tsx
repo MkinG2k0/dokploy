@@ -76,7 +76,6 @@ export const BillingSubscriptionCard = ({
     subscription?.currentPeriodEnd ?? null,
     locale,
   );
-  console.log(subscription);
   const showRenewal = Boolean(
     subscription &&
     (subscription.plan === "pro" || subscription.plan === "agency") &&

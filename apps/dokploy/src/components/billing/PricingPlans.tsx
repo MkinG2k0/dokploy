@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatRubCurrencyFromKopek } from "@/lib/format-kopek";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
@@ -45,6 +46,7 @@ const isCurrentPlan = (
 };
 
 export const PricingPlans = () => {
+	const locale = useLocale();
 	const t = useTranslations("billing");
 	const { data: plans, isPending: isPlansLoading, error: plansError } =
 		api.billing.getPlans.useQuery();
@@ -102,7 +104,7 @@ export const PricingPlans = () => {
 					plan={paidCheckoutPlan}
 					isOpen
 					planDisplayName={paidModalPlan.name}
-					priceMonthly={paidModalPlan.priceMonthly}
+					priceKopek={paidModalPlan.price}
 					onClose={() => setPaidCheckoutPlan(null)}
 				/>
 			) : null}
@@ -156,7 +158,7 @@ export const PricingPlans = () => {
 							</CardHeader>
 							<CardContent className="flex flex-1 flex-col gap-4">
 								<div className="text-3xl font-semibold">
-									{plan.priceMonthly}₽
+									{formatRubCurrencyFromKopek(plan.price, locale)}
 									<span className="text-sm font-normal text-muted-foreground">
 										{" "}
 										{t("perMonth")}

@@ -4,6 +4,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { logger } from "../lib/logger";
 import { db, user } from "../db";
 import { payment as paymentClient } from "../billing/payment";
+import { kopekToRub } from "../billing/money";
 import { PLANS, getEffectivePlanPrices } from "../billing/plans";
 import {
   addSubscriptionPeriodEnd,
@@ -15,25 +16,22 @@ import { eq } from "drizzle-orm";
 import {
   expireNonAutoRenewSubscriptions,
   loadSubscriptionsEligibleForRebill,
-  reconcilePendingSubscriptionPayments,
 } from "./charge-subscriptions-helpers";
 
 const runChargeSubscriptionsJob = async () => {
   const now = new Date();
 
-  await reconcilePendingSubscriptionPayments(now);
-
   const dueSubscriptions = await loadSubscriptionsEligibleForRebill(now);
 
   for (const sub of dueSubscriptions) {
-    const { price, priceMonthly } = getEffectivePlanPrices(sub.plan);
+    const { price } = getEffectivePlanPrices(sub.plan);
 
     const orderId = createId();
 
     try {
       const result = await paymentClient.charge({
         userId: sub.userId,
-        amount: price,
+        amount: kopekToRub(price),
         description: `DeployBox ${sub.plan}`,
         rebillId: sub.rebillId ?? "",
       });
@@ -44,7 +42,7 @@ const runChargeSubscriptionsJob = async () => {
           subscriptionId: sub.id,
           tinkoffPaymentId: result.paymentId,
           orderId,
-          amount: priceMonthly,
+          amount: price,
           currency: "RUB",
           type: "subscription",
           status: "succeeded",
@@ -74,7 +72,7 @@ const runChargeSubscriptionsJob = async () => {
         subscriptionId: sub.id,
         tinkoffPaymentId: result.paymentId,
         orderId,
-        amount: priceMonthly,
+        amount: price,
         currency: "RUB",
         type: "subscription",
         status: result.failureKind === "REJECTED" ? "failed" : "pending",
@@ -113,7 +111,6 @@ const runChargeSubscriptionsJob = async () => {
 export const initChargeSubscriptionsCronJobs = async () => {
   if (isSubscriptionPeriodTestMode()) {
     logger.warn(
-      {},
       "BILLING_SUBSCRIPTION_PERIOD_TEST: subscription period 1 minute, charge-subscriptions every minute",
     );
     scheduleJob("charge-subscriptions", "* * * * *", runChargeSubscriptionsJob);

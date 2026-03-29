@@ -1,17 +1,32 @@
 import { logger } from "../lib/logger";
 import { db, user } from "../db";
-import { payment as paymentClient } from "../billing/payment";
 import { PLANS, type PlanName } from "../billing/plans";
 import {
-  addSubscriptionPeriodEnd,
   isSubscriptionPeriodTestMode,
   pendingChargeCooldownSince,
   renewalHorizonFromNow,
 } from "../billing/subscription-period";
 import { payment, subscription } from "../db/schema/billing";
-import { eq, and, asc, gte, isNotNull, lte, or, inArray } from "drizzle-orm";
+import { eq, and, gte, isNotNull, lte, or, inArray } from "drizzle-orm";
 
 const PAID_PLANS = ["pro", "agency"] as const satisfies readonly PlanName[];
+
+/**
+ * Платный период уже закончился (как lte(currentPeriodEnd, renewalHorizon) для ребилла,
+ * но отсчёт от now: конец периода в прошлом или сейчас).
+ * Без автопродления / отмена в конце периода — то, что нужно сбросить на free.
+ */
+const wherePaidSubscriptionPeriodEndedWithoutRenewal = (now: Date) =>
+  and(
+    inArray(subscription.plan, PAID_PLANS),
+    or(eq(subscription.status, "active"), eq(subscription.status, "past_due")),
+    isNotNull(subscription.currentPeriodEnd),
+    lte(subscription.currentPeriodEnd, now),
+    or(
+      eq(subscription.autoRenew, false),
+      eq(subscription.cancelAtPeriodEnd, true),
+    ),
+  );
 
 /**
  * Подписки, по которым можно вызывать рекуррент:
@@ -43,17 +58,7 @@ export const loadSubscriptionsEligibleForRebill = async (now: Date) => {
   });
 
   if (candidates.length === 0) {
-    logger.info(
-      {
-        now: now.toISOString(),
-        renewalHorizon: renewalHorizon.toISOString(),
-        pendingCooldownSince: pendingCooldownSince.toISOString(),
-        periodTest: isSubscriptionPeriodTestMode(),
-        candidateCount: 0,
-        dueCount: 0,
-      },
-      "charge-subscriptions: no candidates (rebillId / currentPeriodEnd in window / plan)",
-    );
+    logger.info("charge-subscriptions: no candidates");
     return [];
   }
 
@@ -77,158 +82,41 @@ export const loadSubscriptionsEligibleForRebill = async (now: Date) => {
 
   const due = candidates.filter((s) => !pendingSubscriptionIds.has(s.id));
 
-  logger.info(
-    {
-      now: now.toISOString(),
-      renewalHorizon: renewalHorizon.toISOString(),
-      pendingCooldownSince: pendingCooldownSince.toISOString(),
-      periodTest: isSubscriptionPeriodTestMode(),
-      candidateCount: candidates.length,
-      dueCount: due.length,
-    },
-    "charge-subscriptions: candidates loaded",
-  );
+  logger.info(`charge-subscriptions: candidates ${due.length} loaded`);
 
   return due;
 };
 
 /**
- * Pending после Charge (UNKNOWN) или если вебхук не дошёл / Confirm не прошёл.
- * Сверяем GetState и доводим до succeeded | failed, как вебхук.
+ * Платные подписки без продления: разовый период (autoRenew false) или отмена в конце периода
+ * (cancelAtPeriodEnd true). Только active / past_due и с заданным currentPeriodEnd.
  */
-export const reconcilePendingSubscriptionPayments = async (now: Date) => {
-  const rows = await db.query.payment.findMany({
+export const loadSubscriptionsWithoutRenewal = async () => {
+  return db.query.subscription.findMany({
     where: and(
-      eq(payment.status, "pending"),
-      eq(payment.type, "subscription"),
-      isNotNull(payment.tinkoffPaymentId),
-      isNotNull(payment.subscriptionId),
+      inArray(subscription.plan, PAID_PLANS),
+      isNotNull(subscription.currentPeriodEnd),
+      or(
+        eq(subscription.autoRenew, false),
+        eq(subscription.cancelAtPeriodEnd, true),
+      ),
+      or(
+        eq(subscription.status, "active"),
+        eq(subscription.status, "past_due"),
+      ),
     ),
-    orderBy: [asc(payment.createdAt)],
-    limit: 30,
   });
+};
 
-  for (const row of rows) {
-    const pid = row.tinkoffPaymentId;
-    const sid = row.subscriptionId;
-    if (!pid || !sid) continue;
-
-    try {
-      let st = await paymentClient.status(pid);
-      if (st.status === "AUTHORIZED") {
-        const confirmed = await paymentClient.confirm(pid);
-        if (!confirmed) {
-          logger.warn(
-            { paymentId: pid, orderId: row.orderId },
-            "reconcile: Confirm не прошёл, ожидаем следующий тик",
-          );
-          continue;
-        }
-        st = await paymentClient.status(pid);
-      }
-
-      if (st.status === "CONFIRMED") {
-        await db
-          .update(payment)
-          .set({ status: "succeeded" })
-          .where(eq(payment.id, row.id));
-
-        const sub = await db.query.subscription.findFirst({
-          where: eq(subscription.id, sid),
-        });
-        if (!sub) continue;
-
-        if (sub.status === "pending_payment") {
-          await db
-            .update(subscription)
-            .set({
-              status: "active",
-              autoRenew: true,
-              ...(st.rebillId && st.rebillId !== ""
-                ? { rebillId: st.rebillId }
-                : {}),
-              tinkoffCustomerKey: sub.userId,
-              currentPeriodEnd: addSubscriptionPeriodEnd(now),
-              cancelAtPeriodEnd: false,
-              updatedAt: now,
-            })
-            .where(eq(subscription.id, sub.id));
-        } else if (sub.autoRenew) {
-          const nextEnd = addSubscriptionPeriodEnd(sub.currentPeriodEnd ?? now);
-          await db
-            .update(subscription)
-            .set({
-              status: "active",
-              currentPeriodEnd: nextEnd,
-              updatedAt: now,
-            })
-            .where(eq(subscription.id, sub.id));
-        } else {
-          logger.warn(
-            { subscriptionId: sub.id, orderId: row.orderId },
-            "reconcile: CONFIRMED subscription payment but autoRenew false — period not extended",
-          );
-        }
-
-        await db
-          .update(user)
-          .set({
-            serversQuantity:
-              PLANS[sub.plan as PlanName].features.availableServer,
-          })
-          .where(eq(user.id, sub.userId));
-
-        logger.info(
-          { paymentId: pid, orderId: row.orderId },
-          "reconcile: pending subscription payment -> succeeded",
-        );
-        continue;
-      }
-
-      if (st.status === "REJECTED" || st.status === "CANCELED") {
-        await db
-          .update(payment)
-          .set({ status: "failed" })
-          .where(eq(payment.id, row.id));
-
-        const sub = await db.query.subscription.findFirst({
-          where: eq(subscription.id, sid),
-        });
-        if (sub && (sub.plan === "pro" || sub.plan === "agency")) {
-          await db
-            .update(user)
-            .set({ serversQuantity: PLANS.free.features.availableServer })
-            .where(eq(user.id, sub.userId));
-          if (sub.status === "pending_payment") {
-            await db
-              .update(subscription)
-              .set({
-                plan: "free",
-                status: "active",
-                autoRenew: true,
-                updatedAt: now,
-              })
-              .where(eq(subscription.id, sub.id));
-          } else {
-            await db
-              .update(subscription)
-              .set({ status: "past_due", updatedAt: now })
-              .where(eq(subscription.id, sub.id));
-          }
-        }
-
-        logger.warn(
-          { paymentId: pid, tinkoffStatus: st.status },
-          "reconcile: pending subscription payment -> failed",
-        );
-      }
-    } catch (err) {
-      logger.warn(
-        { paymentId: pid, err },
-        "reconcile: ошибка GetState/Confirm",
-      );
-    }
-  }
+/**
+ * Платные подписки, у которых период уже истёк (currentPeriodEnd <= now), без продления.
+ * Строку subscription не удаляем: на пользователя одна запись, иначе ломаются запросы подписки;
+ * сброс на free делает {@link expireNonAutoRenewSubscriptions}.
+ */
+export const loadPaidSubscriptionsExpiredWithoutRenewal = async (now: Date) => {
+  return db.query.subscription.findMany({
+    where: wherePaidSubscriptionPeriodEndedWithoutRenewal(now),
+  });
 };
 
 /**
@@ -238,21 +126,7 @@ export const reconcilePendingSubscriptionPayments = async (now: Date) => {
  * всё равно должны вернуть план на free, когда период истёк (иначе остаётся pro/agency в БД).
  */
 export const expireNonAutoRenewSubscriptions = async (now: Date) => {
-  const rows = await db.query.subscription.findMany({
-    where: and(
-      inArray(subscription.plan, PAID_PLANS),
-      or(
-        eq(subscription.status, "active"),
-        eq(subscription.status, "past_due"),
-      ),
-      isNotNull(subscription.currentPeriodEnd),
-      lte(subscription.currentPeriodEnd, now),
-      or(
-        eq(subscription.autoRenew, false),
-        eq(subscription.cancelAtPeriodEnd, true),
-      ),
-    ),
-  });
+  const rows = await loadPaidSubscriptionsExpiredWithoutRenewal(now);
 
   for (const sub of rows) {
     await db
@@ -272,10 +146,5 @@ export const expireNonAutoRenewSubscriptions = async (now: Date) => {
         updatedAt: now,
       })
       .where(eq(subscription.id, sub.id));
-
-    logger.info(
-      { subscriptionId: sub.id, userId: sub.userId },
-      "charge-subscriptions: paid period ended (no renewal / cancel at period end), reset to free",
-    );
   }
 };

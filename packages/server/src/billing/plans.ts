@@ -7,8 +7,8 @@ export type PlanFeatures = {
 
 export type Plan = {
   name: string;
+  /** Сумма периода в копейках (как в payment.amount в БД). */
   price: number;
-  priceMonthly: number;
   features: PlanFeatures;
 };
 
@@ -16,7 +16,6 @@ export const PLANS: Record<PlanName, Plan> = {
   free: {
     name: "Free",
     price: 0,
-    priceMonthly: 0,
     features: {
       description: ["1 сервер", "Безлимит проектов", "SSL", "Git deploy"],
       availableServer: 1,
@@ -24,8 +23,7 @@ export const PLANS: Record<PlanName, Plan> = {
   },
   pro: {
     name: "Pro",
-    price: 39_900,
-    priceMonthly: 399,
+    price: 399_00,
     features: {
       description: ["10 серверов", "Мониторинг", "Rollback", "Telegram алерты"],
       availableServer: 10,
@@ -33,8 +31,7 @@ export const PLANS: Record<PlanName, Plan> = {
   },
   agency: {
     name: "Agency",
-    price: 99_900,
-    priceMonthly: 999,
+    price: 999_00,
     features: {
       description: ["50 серверов", "AI Deploy", "API", "SLA 99.9%"],
       availableServer: 50,
@@ -47,35 +44,24 @@ export const PERIOD_DAYS = 30 as const;
 
 export type PlanKey = keyof typeof PLANS;
 
-const LOW_PRICE_PRO_KOPEK = 300 as const;
-const LOW_PRICE_AGENCY_KOPEK = 500 as const;
-const LOW_PRICE_PRO_MONTHLY_RUB = 3 as const;
-const LOW_PRICE_AGENCY_MONTHLY_RUB = 5 as const;
+const LOW_PRICE_PRO_KOPEK = 3_00 as const;
+const LOW_PRICE_AGENCY_KOPEK = 5_00 as const;
 
 /** Минимальные суммы для теста эквайринга Тинькофф (не включать в проде). */
 export const isTinkoffLowPricePaymentEnabled = (): boolean =>
   process.env.TINKOFF_LOW_PRICE_PAYMENT_ENABLED === "true";
 
-/** Цены в копейках и рублях/мес с учётом TINKOFF_LOW_PRICE_PAYMENT_ENABLED. */
-export const getEffectivePlanPrices = (
-  plan: PlanName,
-): { price: number; priceMonthly: number } => {
+/** Эффективная цена периода в копейках с учётом TINKOFF_LOW_PRICE_PAYMENT_ENABLED. */
+export const getEffectivePlanPrices = (plan: PlanName): { price: number } => {
   if (isTinkoffLowPricePaymentEnabled()) {
     if (plan === "pro") {
-      return {
-        price: LOW_PRICE_PRO_KOPEK,
-        priceMonthly: LOW_PRICE_PRO_MONTHLY_RUB,
-      };
+      return { price: LOW_PRICE_PRO_KOPEK };
     }
     if (plan === "agency") {
-      return {
-        price: LOW_PRICE_AGENCY_KOPEK,
-        priceMonthly: LOW_PRICE_AGENCY_MONTHLY_RUB,
-      };
+      return { price: LOW_PRICE_AGENCY_KOPEK };
     }
   }
-  const p = PLANS[plan];
-  return { price: p.price, priceMonthly: p.priceMonthly };
+  return PLANS[plan];
 };
 
 /** Каталог для UI и checkout — те же суммы, что уйдут в Init и в payment.amount. */
@@ -88,12 +74,10 @@ export const getPlansForDisplay = (): Record<PlanName, Plan> => {
     pro: {
       ...PLANS.pro,
       price: LOW_PRICE_PRO_KOPEK,
-      priceMonthly: LOW_PRICE_PRO_MONTHLY_RUB,
     },
     agency: {
       ...PLANS.agency,
       price: LOW_PRICE_AGENCY_KOPEK,
-      priceMonthly: LOW_PRICE_AGENCY_MONTHLY_RUB,
     },
   };
 };

@@ -76,11 +76,6 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   return true;
 };
 
-const rubToKopek = (amountRub: number): number => {
-  const amount = Math.round(amountRub * RUB_TO_KOPEK_MULTIPLIER);
-  return amount;
-};
-
 const kopekToRub = (amountKopek: number): number => {
   return amountKopek / RUB_TO_KOPEK_MULTIPLIER;
 };
@@ -243,7 +238,7 @@ export class TinkoffPayment {
   }): Promise<{ paymentUrl: string; paymentId: string }> {
     const orderId = params.orderId ?? `${params.userId}-${Date.now()}`;
     const response = await this.request<TinkoffInitResponse>("Init", {
-      Amount: rubToKopek(params.amount),
+      Amount: params.amount,
       OrderId: orderId,
       Description: params.description,
       CustomerKey: params.userId,
@@ -354,8 +349,7 @@ export class TinkoffPayment {
   }): Promise<boolean> {
     const response = await this.request<TinkoffApiBaseResponse>("Cancel", {
       PaymentId: params.paymentId,
-      Amount:
-        params.amount !== undefined ? rubToKopek(params.amount) : undefined,
+      Amount: params.amount !== undefined ? params.amount : undefined,
     });
 
     if (!response.Success) {
@@ -402,7 +396,7 @@ export class TinkoffPayment {
     const rawStatus = response.Status ? String(response.Status) : "REJECTED";
     const status = normalizeStatus(rawStatus);
 
-    const amountKopek = response.Amount ?? 0;
+    const amount = response.Amount ?? 0;
     const orderId = response.OrderId ?? "";
     if (!orderId) {
       logger.warn({ paymentId, response }, "Tinkoff GetState missing OrderId");
@@ -418,7 +412,7 @@ export class TinkoffPayment {
 
     return {
       status,
-      amount: kopekToRub(amountKopek),
+      amount,
       orderId,
       rebillId,
     };

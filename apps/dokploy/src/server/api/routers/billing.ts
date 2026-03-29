@@ -1,4 +1,5 @@
 import { addSubscriptionPeriodEnd } from "@dokploy/server/billing/subscription-period";
+import { kopekToRub } from "@dokploy/server/billing/money";
 import {
   PLANS,
   getEffectivePlanPrices,
@@ -75,8 +76,7 @@ export const billingRouter = createTRPCRouter({
       const isRecurring = input.billingType === "recurring";
       const paymentRowType = isRecurring ? "subscription" : "one_time";
 
-      const { price: amountKopek, priceMonthly: amountRub } =
-        getEffectivePlanPrices(planKey);
+      const { price } = getEffectivePlanPrices(planKey);
 
       const orderId = createId();
 
@@ -85,7 +85,7 @@ export const billingRouter = createTRPCRouter({
         : `DeployBox ${plan.name} — разовый платёж`;
 
       const { paymentUrl, paymentId } = await payment.init({
-        amount: amountRub,
+        amount: price,
         orderId,
         description,
         userId: ctx.user.ownerId,
@@ -127,7 +127,7 @@ export const billingRouter = createTRPCRouter({
         subscriptionId: subscriptionRow.id,
         tinkoffPaymentId: paymentId,
         orderId,
-        amount: amountKopek,
+        amount: price,
         currency: "RUB",
         type: paymentRowType,
         metadata: { billingType: input.billingType },

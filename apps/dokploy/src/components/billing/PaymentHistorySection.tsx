@@ -26,12 +26,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { formatRubCurrencyFromKopek } from "@/lib/format-kopek";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
-
-const formatAmountRub = (amountKopek: number): string => {
-	return `${Math.round(amountKopek / 100)}₽`;
-};
 
 const historyCardHeaderClassName = cn(
 	"flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0",
@@ -152,7 +149,9 @@ export const PaymentHistorySection = () => {
 												locale: dateLocale,
 											})}
 										</TableCell>
-										<TableCell>{formatAmountRub(p.amount)}</TableCell>
+										<TableCell>
+											{formatRubCurrencyFromKopek(p.amount, locale)}
+										</TableCell>
 										<TableCell>
 											<Badge variant={paymentStatusBadgeVariant(p.status)}>
 												{paymentStatusLabel(p.status)}

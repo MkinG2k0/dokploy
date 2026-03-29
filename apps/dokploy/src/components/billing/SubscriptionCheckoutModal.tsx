@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,10 @@ import {
 	getBillingRefundTelegramHandle,
 	getBillingRefundTelegramHref,
 } from "@/lib/billing-refund-telegram";
+import {
+	formatRubCurrencyFromKopek,
+	formatRublesAmountFromKopek,
+} from "@/lib/format-kopek";
 import { cn } from "@/lib/utils";
 import { api } from "@/utils/api";
 
@@ -64,7 +68,8 @@ const ConsentRow = ({
 export interface SubscriptionCheckoutModalProps {
   plan: "pro" | "agency";
   planDisplayName: string;
-  priceMonthly: number;
+  /** Цена периода в копейках. */
+  priceKopek: number;
   isOpen: boolean;
   onClose: () => void;
   className?: string;
@@ -73,13 +78,16 @@ export interface SubscriptionCheckoutModalProps {
 export const SubscriptionCheckoutModal = ({
   plan,
   planDisplayName,
-  priceMonthly,
+  priceKopek,
   isOpen,
   onClose,
   className,
 }: SubscriptionCheckoutModalProps) => {
+  const locale = useLocale();
   const t = useTranslations("billing.checkoutModal");
   const tBilling = useTranslations("billing");
+  const priceRubDisplay = formatRublesAmountFromKopek(priceKopek, locale);
+  const priceWithCurrency = formatRubCurrencyFromKopek(priceKopek, locale);
   const [billingType, setBillingType] = useState<BillingType>("recurring");
   const [agreedToCharge, setAgreedToCharge] = useState(true);
   const [agreedToCancellation, setAgreedToCancellation] = useState(false);
@@ -147,7 +155,7 @@ export const SubscriptionCheckoutModal = ({
             </span>
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <span className="text-3xl font-semibold tabular-nums tracking-tight text-foreground">
-                {priceMonthly}₽
+                {priceWithCurrency}
               </span>
               <span className="text-sm font-normal text-muted-foreground">
                 {tBilling("perMonth")}
@@ -189,7 +197,7 @@ export const SubscriptionCheckoutModal = ({
                   onCheckedChange={setAgreedToCharge}
                   label={t("checkboxOneTimeLabel")}
                   description={t("checkboxOneTimeDescription", {
-                    price: priceMonthly,
+                    price: priceRubDisplay,
                     plan: planDisplayName,
                   })}
                 />
@@ -210,7 +218,7 @@ export const SubscriptionCheckoutModal = ({
                   onCheckedChange={setAgreedToCharge}
                   label={t("checkboxRecurringChargeLabel")}
                   description={t("checkboxRecurringChargeDescription", {
-                    price: priceMonthly,
+                    price: priceRubDisplay,
                   })}
                 />
                 <ConsentRow
