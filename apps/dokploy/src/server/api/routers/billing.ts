@@ -12,7 +12,7 @@ import {
   subscription as subscriptionTable,
 } from "@dokploy/server/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { z } from "zod";
 
@@ -27,7 +27,7 @@ export const billingRouter = createTRPCRouter({
     const row = await db.query.subscription.findFirst({
       where: eq(subscriptionTable.userId, ctx.user.ownerId),
     });
-    // TanStack Query v5: данные запроса не могут быть undefined
+
     return row ?? null;
   }),
 
@@ -138,106 +138,6 @@ export const billingRouter = createTRPCRouter({
       return { paymentUrl };
     }),
 
-  syncCheckoutStatus: protectedProcedure.mutation(async ({ ctx }) => {
-    const latestPending = await db.query.payment.findFirst({
-      where: eq(paymentTable.userId, ctx.user.ownerId),
-      orderBy: desc(paymentTable.createdAt),
-    });
-
-    if (!latestPending || latestPending.status !== "pending") {
-      return { status: "idle" as const };
-    }
-
-    const paymentId = latestPending.tinkoffPaymentId;
-    if (!paymentId) {
-      return { status: "pending" as const };
-    }
-
-    const state = await payment.status(paymentId);
-    const now = new Date();
-
-    if (state.status === "AUTHORIZED" || state.status === "CONFIRMED") {
-      if (state.status === "AUTHORIZED") {
-        await payment.confirm(paymentId);
-      }
-
-      const checkoutSub = latestPending.subscriptionId
-        ? await db.query.subscription.findFirst({
-            where: eq(subscriptionTable.id, latestPending.subscriptionId),
-          })
-        : (
-            await db
-              .select()
-              .from(subscriptionTable)
-              .where(
-                and(
-                  eq(subscriptionTable.userId, latestPending.userId),
-                  eq(subscriptionTable.status, "pending_payment"),
-                ),
-              )
-              .orderBy(desc(subscriptionTable.updatedAt))
-              .limit(1)
-          )[0];
-
-      if (!checkoutSub) {
-        return { status: "pending" as const };
-      }
-
-      await db
-        .update(paymentTable)
-        .set({ status: "succeeded" })
-        .where(eq(paymentTable.id, latestPending.id));
-
-      const isOneTime = latestPending.type === "one_time";
-
-      await db
-        .update(subscriptionTable)
-        .set({
-          plan: checkoutSub.plan,
-          status: "active",
-          tinkoffCustomerKey: latestPending.userId,
-          autoRenew: !isOneTime,
-          ...(isOneTime
-            ? { rebillId: null }
-            : state.rebillId !== undefined && state.rebillId !== ""
-              ? { rebillId: state.rebillId }
-              : {}),
-          currentPeriodEnd: addSubscriptionPeriodEnd(now),
-          cancelAtPeriodEnd: false,
-          updatedAt: now,
-        })
-        .where(eq(subscriptionTable.userId, latestPending.userId));
-
-      return { status: "confirmed" as const };
-    }
-
-    if (state.status === "REJECTED" || state.status === "CANCELED") {
-      await db
-        .update(paymentTable)
-        .set({ status: "failed" })
-        .where(eq(paymentTable.id, latestPending.id));
-
-      const subAfterFail = await db.query.subscription.findFirst({
-        where: eq(subscriptionTable.userId, latestPending.userId),
-      });
-      if (subAfterFail?.status === "pending_payment") {
-        await db
-          .update(subscriptionTable)
-          .set({
-            plan: "free",
-            status: "active",
-            autoRenew: true,
-            updatedAt: now,
-          })
-          .where(eq(subscriptionTable.userId, latestPending.userId));
-      }
-
-      return { status: "failed" as const };
-    }
-
-    return { status: "pending" as const };
-  }),
-
   cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
     const existing = await db.query.subscription.findFirst({
       where: eq(subscriptionTable.userId, ctx.user.ownerId),
@@ -250,11 +150,45 @@ export const billingRouter = createTRPCRouter({
       });
     }
 
+    const isPaidPlan = existing.plan === "pro" || existing.plan === "agency";
+    if (!isPaidPlan || existing.status !== "active") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "No active paid subscription to cancel",
+      });
+    }
+
+    if (existing.cancelAtPeriodEnd && !existing.autoRenew) {
+      return { ok: true as const };
+    }
+
+    const now = new Date();
     await db
       .update(subscriptionTable)
-      .set({ cancelAtPeriodEnd: true })
+      .set({
+        cancelAtPeriodEnd: true,
+        autoRenew: false,
+        updatedAt: now,
+      })
       .where(eq(subscriptionTable.userId, ctx.user.ownerId));
 
-    return { ok: true };
+    return { ok: true as const };
+  }),
+
+  /** Временно: полное удаление строки подписки из БД (для отладки / сброса состояния). */
+  deleteSubscription: protectedProcedure.mutation(async ({ ctx }) => {
+    const existing = await db.query.subscription.findFirst({
+      where: eq(subscriptionTable.userId, ctx.user.ownerId),
+    });
+
+    if (!existing) {
+      return { ok: true as const, deleted: false as const };
+    }
+
+    await db
+      .delete(subscriptionTable)
+      .where(eq(subscriptionTable.userId, ctx.user.ownerId));
+
+    return { ok: true as const, deleted: true as const };
   }),
 });

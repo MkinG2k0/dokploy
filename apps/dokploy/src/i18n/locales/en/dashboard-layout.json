@@ -36,7 +36,8 @@
 	},
 	"help": {
 		"documentation": "Documentation",
-		"support": "Support"
+		"support": "Support",
+		"whatsNew": "What’s new"
 	},
 	"sidebar": {
 		"selectOrganization": "Select organization",

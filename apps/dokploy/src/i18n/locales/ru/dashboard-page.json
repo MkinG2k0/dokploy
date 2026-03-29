@@ -279,6 +279,7 @@
 		"schedules": "Расписания",
 		"deployments": "Деплои",
 		"monitoring": "Мониторинг",
-		"docker": "Docker"
+		"docker": "Docker",
+		"productUpdates": "Что нового"
 	}
 }

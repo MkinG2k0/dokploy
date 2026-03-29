@@ -24,7 +24,12 @@ export const subscriptionHasPaidEntitlement = (
 			(subscription.status === "active" || subscription.status === "past_due"),
 	);
 
-export type SubscriptionUiStatus = "freeTier" | "active" | "past_due" | "canceled";
+export type SubscriptionUiStatus =
+	| "freeTier"
+	| "active"
+	| "cancelScheduled"
+	| "past_due"
+	| "canceled";
 
 export type SubscriptionStatusBadgeVariant =
 	| "green"
@@ -50,6 +55,7 @@ export const subscriptionUiStatus = (
 		subscription.status === "active" &&
 		(subscription.plan === "pro" || subscription.plan === "agency")
 	) {
+		if (subscription.cancelAtPeriodEnd) return "cancelScheduled";
 		return "active";
 	}
 	return "freeTier";
@@ -59,6 +65,7 @@ export const subscriptionStatusBadgeVariant = (
 	ui: SubscriptionUiStatus,
 ): SubscriptionStatusBadgeVariant => {
 	if (ui === "active") return "green";
+	if (ui === "cancelScheduled") return "secondary";
 	if (ui === "past_due") return "yellow";
 	if (ui === "canceled") return "secondary";
 	return "outline";

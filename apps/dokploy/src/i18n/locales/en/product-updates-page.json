@@ -1,0 +1,22 @@
+{
+	"productUpdates": {
+		"betaTitle": "Beta version",
+		"betaDescription": "You are using a beta version of the product. Features, pricing, and billing may change as we improve the service.",
+		"changesTitle": "Latest product updates",
+		"releasesHint": "For the full version history, see",
+		"releasesLinkLabel": "GitHub releases",
+		"releasesUrl": "https://github.com/MkinG2k0/dokploy/releases",
+		"changelog": [
+			{
+				"date": "March 2026",
+				"title": "Product updates page",
+				"description": "Latest changes are published here. Use the Help section in the sidebar to open this page anytime."
+			},
+			{
+				"date": "March 2026",
+				"title": "Billing and subscriptions",
+				"description": "Cloud billing improvements: clearer subscription status, checkout flow, and payment history in the Billing settings."
+			}
+		]
+	}
+}

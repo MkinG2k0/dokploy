@@ -36,7 +36,8 @@
 	},
 	"help": {
 		"documentation": "Документация",
-		"support": "Поддержка"
+		"support": "Поддержка",
+		"whatsNew": "Что нового"
 	},
 	"sidebar": {
 		"selectOrganization": "Выберите организацию",

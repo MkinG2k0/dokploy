@@ -30,7 +30,8 @@ export type DashboardPageTitleKey =
 	| "schedules"
 	| "deployments"
 	| "monitoring"
-	| "docker";
+	| "docker"
+	| "productUpdates";
 
 interface Props {
 	pageTitleKey: DashboardPageTitleKey;

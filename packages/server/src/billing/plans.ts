@@ -60,21 +60,19 @@ export const isTinkoffLowPricePaymentEnabled = (): boolean =>
 export const getEffectivePlanPrices = (
   plan: PlanName,
 ): { price: number; priceMonthly: number } => {
-  if (!isTinkoffLowPricePaymentEnabled()) {
-    const p = PLANS[plan];
-    return { price: p.price, priceMonthly: p.priceMonthly };
-  }
-  if (plan === "pro") {
-    return {
-      price: LOW_PRICE_PRO_KOPEK,
-      priceMonthly: LOW_PRICE_PRO_MONTHLY_RUB,
-    };
-  }
-  if (plan === "agency") {
-    return {
-      price: LOW_PRICE_AGENCY_KOPEK,
-      priceMonthly: LOW_PRICE_AGENCY_MONTHLY_RUB,
-    };
+  if (isTinkoffLowPricePaymentEnabled()) {
+    if (plan === "pro") {
+      return {
+        price: LOW_PRICE_PRO_KOPEK,
+        priceMonthly: LOW_PRICE_PRO_MONTHLY_RUB,
+      };
+    }
+    if (plan === "agency") {
+      return {
+        price: LOW_PRICE_AGENCY_KOPEK,
+        priceMonthly: LOW_PRICE_AGENCY_MONTHLY_RUB,
+      };
+    }
   }
   const p = PLANS[plan];
   return { price: p.price, priceMonthly: p.priceMonthly };

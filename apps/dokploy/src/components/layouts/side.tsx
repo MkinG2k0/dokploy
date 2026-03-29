@@ -1,12 +1,11 @@
 "use client";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
-	Activity,
 	BarChart2,
 	Bell,
 	BlocksIcon,
-	BotIcon,
 	BookOpen,
+	BotIcon,
 	Boxes,
 	ChevronRight,
 	ChevronsUpDown,
@@ -14,7 +13,7 @@ import {
 	Clock,
 	CreditCard,
 	Database,
-	Folder,
+	FlaskConical,
 	FolderOpen,
 	Forward,
 	GalleryVerticalEnd,
@@ -24,8 +23,8 @@ import {
 	KeyRound,
 	Loader2,
 	LogIn,
-	MessageCircle,
 	type LucideIcon,
+	MessageCircle,
 	Package,
 	Palette,
 	PieChart,
@@ -39,9 +38,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -83,7 +83,6 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { Badge } from "@/components/ui/badge";
 import { authClient } from "@/lib/auth-client";
 import { getBillingRefundTelegramHref } from "@/lib/billing-refund-telegram";
 import { cn } from "@/lib/utils";
@@ -94,8 +93,8 @@ import { DialogAction } from "../shared/dialog-action";
 import { Logo } from "../shared/logo";
 import { Button } from "../ui/button";
 import { TimeBadge } from "../ui/time-badge";
-import { UpdateServerButton } from "./update-server";
 import { SidebarUserCard } from "./sidebar-user-card";
+import { UpdateServerButton } from "./update-server";
 
 // The types of the queries we are going to use
 type AuthQueryOutput = inferRouterOutputs<AppRouter>["user"]["get"];
@@ -131,21 +130,29 @@ type NavItem =
 			isEnabled?: EnabledRule;
 	  };
 
-// ExternalLink type
-// Represents an external link item (used for the help section)
-type ExternalLink = {
-	name: string;
-	url: string;
-	icon: React.ComponentType<{ className?: string }>;
-	isEnabled?: EnabledRule;
-};
+// Help menu: external links or in-app routes (e.g. product updates)
+type HelpMenuItem =
+	| {
+			behavior: "external";
+			name: string;
+			url: string;
+			icon: LucideIcon;
+			isEnabled?: EnabledRule;
+	  }
+	| {
+			behavior: "internal";
+			name: string;
+			url: string;
+			icon: LucideIcon;
+			isEnabled?: EnabledRule;
+	  };
 
 // Menu type
 // Consists of home, settings, and help items
 type Menu = {
 	home: NavItem[];
 	settings: NavItem[];
-	help: ExternalLink[];
+	help: HelpMenuItem[];
 };
 
 // Menu items
@@ -343,17 +350,26 @@ const MENU: Menu = {
 
 	help: [
 		{
+			behavior: "external",
 			name: "help.documentation",
 			url: "https://docs.dokploy.com",
 			icon: BookOpen,
 		},
 		{
+			behavior: "external",
 			name: "help.support",
 			url: "mailto:support@deploy-box.ru",
 			icon: MessageCircle,
 		},
+		{
+			behavior: "internal",
+			name: "help.whatsNew",
+			url: "/dashboard/settings/product-updates",
+			icon: FlaskConical,
+			isEnabled: ({ isCloud }) => !!isCloud,
+		},
 	],
-} as const;
+} satisfies Menu;
 
 /**
  * Creates a menu based on the current user's role and permissions
@@ -387,6 +403,9 @@ function createMenuForAuthUser(opts: {
 
 	// Apply whitelabeling URL overrides to help items; поддержка — Telegram из env приоритетнее дефолта
 	const helpItems = filterEnabled(MENU.help).map((item) => {
+		if (item.behavior !== "external") {
+			return item;
+		}
 		if (opts.whitelabeling?.docsUrl && item.name === "help.documentation") {
 			return { ...item, url: opts.whitelabeling.docsUrl };
 		}
@@ -462,6 +481,22 @@ function findActiveNavItem(
 	return found?.items.find((item) =>
 		isActiveRoute({ itemUrl: item.url, pathname }),
 	);
+}
+
+function internalHelpItemsAsNavItems(
+	helpList: HelpMenuItem[],
+): SingleNavItem[] {
+	return helpList
+		.filter(
+			(item): item is Extract<HelpMenuItem, { behavior: "internal" }> =>
+				item.behavior === "internal",
+		)
+		.map((item) => ({
+			isSingle: true as const,
+			title: item.name,
+			url: item.url,
+			icon: item.icon,
+		}));
 }
 
 interface Props {
@@ -838,7 +873,11 @@ export default function Page({ children }: Props) {
 	});
 
 	const activeItem = findActiveNavItem(
-		[...filteredHome, ...filteredSettings],
+		[
+			...filteredHome,
+			...filteredSettings,
+			...internalHelpItemsAsNavItems(help),
+		],
 		pathname,
 	);
 
@@ -1068,23 +1107,39 @@ export default function Page({ children }: Props) {
 					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
 						<SidebarGroupLabel>{t("common.help")}</SidebarGroupLabel>
 						<SidebarMenu>
-							{help.map((item: ExternalLink) => (
-								<SidebarMenuItem key={item.name}>
-									<SidebarMenuButton asChild>
-										<a
-											href={item.url}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="flex w-full items-center gap-2"
-										>
-											<span className="mr-2">
-												<item.icon className="h-4 w-4" />
-											</span>
-											<span>{t(item.name)}</span>
-										</a>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
+							{help.map((item) =>
+								item.behavior === "external" ? (
+									<SidebarMenuItem key={item.name}>
+										<SidebarMenuButton asChild>
+											<a
+												href={item.url}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex w-full items-center gap-2"
+											>
+												<span className="mr-2">
+													<item.icon className="h-4 w-4" />
+												</span>
+												<span>{t(item.name)}</span>
+											</a>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								) : (
+									<SidebarMenuItem key={item.name}>
+										<SidebarMenuButton asChild>
+											<Link
+												href={item.url}
+												className="flex w-full items-center gap-2"
+											>
+												<span className="mr-2">
+													<item.icon className="h-4 w-4" />
+												</span>
+												<span>{t(item.name)}</span>
+											</Link>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								),
+							)}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>

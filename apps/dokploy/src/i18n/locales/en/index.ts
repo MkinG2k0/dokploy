@@ -50,6 +50,7 @@ export { default as enMonitoringDashboardMessages } from "./monitoring-dashboard
 export { default as enMonitoringPageMessages } from "./monitoring-page.json";
 export { default as enOnboardingPageMessages } from "./onboarding-page.json";
 export { default as enProjectComponentsMessages } from "./project-components.json";
+export { default as enProductUpdatesPageMessages } from "./product-updates-page.json";
 export { default as enProjectPageMessages } from "./project-page.json";
 export { default as enProjectEnvironmentPageMessages } from "./project-environment-page.json";
 export { default as enRegisterPageMessages } from "./register-page.json";
