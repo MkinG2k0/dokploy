@@ -58,7 +58,7 @@ export const loadSubscriptionsEligibleForRebill = async (now: Date) => {
   });
 
   if (candidates.length === 0) {
-    logger.info("charge-subscriptions: no candidates");
+    logger.info("charge-subscriptions: no candidates 444");
     return [];
   }
 

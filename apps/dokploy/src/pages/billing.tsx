@@ -5,24 +5,24 @@ import type { GetServerSidePropsContext } from "next";
  * Редирект на актуальный путь настроек биллинга.
  */
 export default function BillingLegacyRedirect() {
-	return null;
+  return null;
 }
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-	const search = new URLSearchParams();
-	for (const [key, value] of Object.entries(ctx.query)) {
-		if (typeof value === "string") {
-			search.set(key, value);
-		}
-	}
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(ctx.query)) {
+    if (typeof value === "string") {
+      search.set(key, value);
+    }
+  }
 
-	const qs = search.toString();
-	const destination = `/dashboard/settings/billing${qs ? `?${qs}` : ""}`;
+  const qs = search.toString();
+  const destination = `/dashboard/settings/billing${qs ? `?${qs}` : ""}`;
 
-	return {
-		redirect: {
-			destination,
-			permanent: false,
-		},
-	};
+  return {
+    redirect: {
+      destination,
+      permanent: false,
+    },
+  };
 }
