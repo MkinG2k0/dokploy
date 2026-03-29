@@ -102,7 +102,10 @@
 		"activeServicesWarning": "У вас есть активные сервисы на этом сервере, пожалуйста, сначала удалите их.",
 		"cannotDeleteTooltip": "Невозможно удалить — есть активные сервисы",
 		"deleteServerTooltip": "Удалить сервер",
-		"deletedSuccess": "Сервер {name} успешно удалён"
+		"deletedSuccess": "Сервер {name} успешно удалён",
+		"planLockedCta": "Продлить подписку",
+		"planLockedHint": "Недоступно на текущем плане. Откройте биллинг, чтобы продлить подписку.",
+		"createServerLimitTooltip": "Лимит серверов по плану исчерпан. Улучшите тариф в биллинге или удалите сервер."
 	},
 	"settingsNotifications": {
 		"title": "Уведомления",

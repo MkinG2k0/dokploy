@@ -56,6 +56,7 @@ export async function getServerSideProps(
 	});
 	await helpers.user.get.prefetch();
 	await helpers.settings.isCloud.prefetch();
+	await helpers.server.getCloudServerLimit.prefetch();
 
 	return {
 		props: {

@@ -1100,6 +1100,13 @@
       "when": 1774717196021,
       "tag": "0156_subscription_auto_renew",
       "breakpoints": true
+    },
+    {
+      "idx": 157,
+      "version": "7",
+      "when": 1774768068231,
+      "tag": "0157_plan_access_blocked",
+      "breakpoints": true
     }
   ]
 }

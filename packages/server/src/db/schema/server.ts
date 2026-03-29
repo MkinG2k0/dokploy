@@ -96,6 +96,8 @@ export const server = pgTable("server", {
 				},
 			},
 		}),
+	/** Cloud: вне слота по serversQuantity владельца org — мутации сервера запрещены (кроме delete). */
+	planAccessBlocked: boolean("planAccessBlocked").notNull().default(false),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({

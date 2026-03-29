@@ -131,7 +131,7 @@ export const BillingSubscriptionCard = ({
     void handleConfirmDeleteSubscription();
   };
 
-  const showDeleteSubscriptionButton = Boolean(subscription);
+  const showDeleteSubscriptionButton = true;
 
   return (
     <Card className="bg-background">

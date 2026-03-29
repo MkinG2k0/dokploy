@@ -102,7 +102,10 @@
 		"activeServicesWarning": "You have active services associated with this server, please delete them first.",
 		"cannotDeleteTooltip": "Cannot delete - has active services",
 		"deleteServerTooltip": "Delete Server",
-		"deletedSuccess": "Server {name} deleted successfully"
+		"deletedSuccess": "Server {name} deleted successfully",
+		"planLockedCta": "Upgrade plan",
+		"planLockedHint": "Not available on your current plan. Open billing to extend your subscription.",
+		"createServerLimitTooltip": "Server limit reached for your plan. Upgrade in Billing or remove a server."
 	},
 	"settingsNotifications": {
 		"title": "Notifications",

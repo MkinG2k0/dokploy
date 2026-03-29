@@ -1,6 +1,7 @@
 import { standardSchemaResolver as zodResolver } from "@hookform/resolvers/standard-schema";
 import { Pencil, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -36,6 +37,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { api } from "@/utils/api";
 
 const Schema = z.object({
@@ -62,9 +69,24 @@ interface Props {
 }
 
 export const HandleServers = ({ serverId, asButton = false }: Props) => {
+	const t = useTranslations("settingsServers");
 	const utils = api.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
-	const canCreateMoreServers = true;
+	const { data: isCloud } = api.settings.isCloud.useQuery();
+	const { data: limitData } = api.server.getCloudServerLimit.useQuery(
+		undefined,
+		{ enabled: Boolean(isCloud) },
+	);
+	const { data: allServers } = api.server.all.useQuery(undefined, {
+		enabled: Boolean(isCloud && !serverId),
+	});
+	const atServerLimit = Boolean(
+		isCloud &&
+			!serverId &&
+			limitData?.allowed != null &&
+			allServers &&
+			allServers.length >= limitData.allowed,
+	);
 
 	const { data, refetch: refetchServer } = api.server.one.useQuery(
 		{
@@ -104,8 +126,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 		});
 	}, [form, form.reset, form.formState.isSubmitSuccessful, data]);
 
-	useEffect(() => {
-	}, [isOpen]);
+	useEffect(() => {}, [isOpen]);
 
 	const onSubmit = async (data: Schema) => {
 		await mutateAsync({
@@ -151,6 +172,26 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 						Edit Server
 					</DropdownMenuItem>
 				)
+			) : atServerLimit ? (
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<span className="inline-flex">
+								<Button
+									className="cursor-not-allowed space-x-3"
+									disabled
+									type="button"
+								>
+									<PlusIcon className="h-4 w-4" />
+									Create Server
+								</Button>
+							</span>
+						</TooltipTrigger>
+						<TooltipContent className="max-w-xs" side="bottom">
+							<p>{t("createServerLimitTooltip")}</p>
+						</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
 			) : (
 				<DialogTrigger asChild>
 					<Button className="cursor-pointer space-x-3">
@@ -227,11 +268,11 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 						of the above, to avoid issues.
 					</AlertBlock>
 				</div>
-				{!canCreateMoreServers && (
+				{atServerLimit && !serverId && (
 					<AlertBlock type="warning" className="mt-4">
-						You cannot create more servers,{" "}
+						{t("createServerLimitTooltip")}{" "}
 						<Link href="/dashboard/settings/billing" className="text-primary">
-							Please upgrade your plan
+							{t("planLockedCta")}
 						</Link>
 					</AlertBlock>
 				)}
@@ -417,7 +458,7 @@ export const HandleServers = ({ serverId, asButton = false }: Props) => {
 					<DialogFooter>
 						<Button
 							isLoading={isPending}
-							disabled={!canCreateMoreServers && !serverId}
+							disabled={Boolean(atServerLimit && !serverId)}
 							form="hook-form-add-server"
 							type="submit"
 						>
