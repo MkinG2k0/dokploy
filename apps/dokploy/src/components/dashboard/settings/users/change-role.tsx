@@ -80,7 +80,10 @@ export const ChangeRole = ({ memberId, currentRole, userEmail }: Props) => {
 		})
 			.then(async () => {
 				toast.success(tToast("roleUpdatedSuccess"));
-				await utils.user.all.invalidate();
+				await Promise.all([
+					utils.user.all.invalidate(),
+					utils.user.allUsers.invalidate(),
+				]);
 				setIsOpen(false);
 			})
 			.catch((error) => {

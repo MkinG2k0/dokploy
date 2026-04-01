@@ -1,25 +1,25 @@
-import { format } from "date-fns";
-import { Loader2, MoreHorizontal, Users } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { AlertBlock } from "@/components/shared/alert-block";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { format } from 'date-fns'
+import { Loader2, MoreHorizontal, Users } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
+import { AlertBlock } from '@/components/shared/alert-block'
+import { DialogAction } from '@/components/shared/dialog-action'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card'
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu'
 import {
 	Table,
 	TableBody,
@@ -27,62 +27,62 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "@/components/ui/table";
-import { authClient } from "@/lib/auth-client";
-import { api } from "@/utils/api";
-import { AddUserPermissions } from "./add-permissions";
-import { ChangeRole } from "./change-role";
+} from '@/components/ui/table'
+import { authClient } from '@/lib/auth-client'
+import { api } from '@/utils/api'
+import { AddUserPermissions } from './add-permissions'
+import { ChangeRole } from './change-role'
 
 export const ShowUsers = () => {
-	const t = useTranslations("settingsUsers");
-	const { data: isCloud } = api.settings.isCloud.useQuery();
-	const { data, isPending, refetch } = api.user.all.useQuery();
-	const { mutateAsync } = api.user.remove.useMutation();
-	const { data: permissions } = api.user.getPermissions.useQuery();
-	const { data: hasValidLicense } =
-		api.licenseKey.haveValidLicenseKey.useQuery();
+	const t = useTranslations('settingsUsers')
+	const {data: isCloud} = api.settings.isCloud.useQuery()
+	const {data, isPending, refetch} = api.user.all.useQuery()
+	const {mutateAsync} = api.user.remove.useMutation()
+	const {data: permissions} = api.user.getPermissions.useQuery()
+	const {data: hasValidLicense} =
+		api.licenseKey.haveValidLicenseKey.useQuery()
 
-	const utils = api.useUtils();
-	const { data: session } = api.user.session.useQuery();
+	const utils = api.useUtils()
+	const {data: session} = api.user.session.useQuery()
 
-	const FREE_ROLES = ["owner", "admin", "member"];
+	const FREE_ROLES = ['owner', 'admin', 'member']
 	const membersWithCustomRoles = data?.filter(
 		(member) => !FREE_ROLES.includes(member.role),
-	);
+	)
 	const hasCustomRolesWithoutLicense =
-		!hasValidLicense && (membersWithCustomRoles?.length ?? 0) > 0;
-
+		!hasValidLicense && (membersWithCustomRoles?.length ?? 0) > 0
+	
 	return (
 		<div className="w-full">
 			<Card className="h-full bg-sidebar  p-2.5 rounded-xl  max-w-5xl mx-auto">
 				<div className="rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
-							<Users className="size-6 text-muted-foreground self-center" />
-							{t("title")}
+							<Users className="size-6 text-muted-foreground self-center"/>
+							{t('title')}
 						</CardTitle>
-						<CardDescription>{t("description")}</CardDescription>
+						<CardDescription>{t('description')}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>{t("loading")}</span>
-								<Loader2 className="animate-spin size-4" />
+								<span>{t('loading')}</span>
+								<Loader2 className="animate-spin size-4"/>
 							</div>
 						) : (
 							<>
 								{data?.length === 0 ? (
 									<div className="flex flex-col items-center gap-3  min-h-[25vh] justify-center">
-										<Users className="size-8 self-center text-muted-foreground" />
+										<Users className="size-8 self-center text-muted-foreground"/>
 										<span className="text-base text-muted-foreground">
-											{t("emptyState")}
+											{t('emptyState')}
 										</span>
 									</div>
 								) : (
 									<div className="flex flex-col gap-4  min-h-[25vh]">
 										{hasCustomRolesWithoutLicense && (
 											<AlertBlock type="warning">
-												{t("customRolesWarning", {
+												{t('customRolesWarning', {
 													count: membersWithCustomRoles?.length ?? 0,
 												})}
 											</AlertBlock>
@@ -91,20 +91,20 @@ export const ShowUsers = () => {
 											<TableHeader>
 												<TableRow>
 													<TableHead className="w-[100px]">
-														{t("colEmail")}
+														{t('colEmail')}
 													</TableHead>
 													<TableHead className="text-center">
-														{t("colRole")}
+														{t('colRole')}
 													</TableHead>
 													<TableHead className="text-center">
-														{t("col2fa")}
+														{t('col2fa')}
 													</TableHead>
 
 													<TableHead className="text-center">
-														{t("colCreatedAt")}
+														{t('colCreatedAt')}
 													</TableHead>
 													<TableHead className="text-right">
-														{t("colActions")}
+														{t('colActions')}
 													</TableHead>
 												</TableRow>
 											</TableHeader>
@@ -112,48 +112,48 @@ export const ShowUsers = () => {
 												{data?.map((member) => {
 													const currentUserRole = data?.find(
 														(m) => m.user.id === session?.user?.id,
-													)?.role;
+													)?.role
 
 													// Owner never has "Edit Permissions" (they're absolute owner)
 													// Other users can edit permissions if target is not themselves and target is a member/custom role
 													const isStaticAdminOrOwner =
-														member.role === "owner" || member.role === "admin";
+														member.role === 'owner' || member.role === 'admin'
 													const canEditPermissions =
 														!isStaticAdminOrOwner &&
-														member.user.id !== session?.user?.id;
+														member.user.id !== session?.user?.id
 
 													// Can change role based on hierarchy:
 													// - Owner: Can change anyone's role (except themselves and other owners)
 													// - Admin: Can only change member/custom roles (not other admins or owners)
 													// - Owner role is intransferible
 													const canChangeRole =
-														member.role !== "owner" &&
+														member.role !== 'owner' &&
 														member.user.id !== session?.user?.id &&
-														(currentUserRole === "owner" ||
-															(currentUserRole === "admin" &&
-																member.role !== "admin"));
+														(currentUserRole === 'owner' ||
+															(currentUserRole === 'admin' &&
+																member.role !== 'admin'))
 
 													const canDeleteMember =
-														permissions?.member.delete ?? false;
+														permissions?.member.delete ?? false
 
 													// Self-hosted: "Delete User" removes the user entirely
 													// Cloud: "Unlink User" removes from the organization only
 													const canRemove =
-														member.role !== "owner" &&
+														member.role !== 'owner' &&
 														member.user.id !== session?.user?.id &&
-														(currentUserRole === "owner" ||
-															(currentUserRole === "admin" &&
-																member.role !== "admin") ||
-															(canDeleteMember && !isStaticAdminOrOwner));
+														(currentUserRole === 'owner' ||
+															(currentUserRole === 'admin' &&
+																member.role !== 'admin') ||
+															(canDeleteMember && !isStaticAdminOrOwner))
 
-													const canDelete = canRemove && !isCloud;
-													const canUnlink = canRemove && !!isCloud;
+													const canDelete = canRemove && !isCloud
+													const canUnlink = canRemove && !!isCloud
 
 													const hasAnyAction =
 														canEditPermissions ||
 														canChangeRole ||
 														canDelete ||
-														canUnlink;
+														canUnlink
 
 													return (
 														<TableRow key={member.id}>
@@ -161,16 +161,16 @@ export const ShowUsers = () => {
 																{member.user.email}
 																{member.user.id === session?.user?.id && (
 																	<span className="text-muted-foreground ml-1">
-																		{t("youLabel")}
+																		{t('youLabel')}
 																	</span>
 																)}
 															</TableCell>
 															<TableCell className="text-center">
 																<Badge
 																	variant={
-																		member.role === "owner"
-																			? "default"
-																			: "secondary"
+																		member.role === 'owner'
+																			? 'default'
+																			: 'secondary'
 																	}
 																>
 																	{member.role}
@@ -178,12 +178,12 @@ export const ShowUsers = () => {
 															</TableCell>
 															<TableCell className="text-center">
 																{member.user.twoFactorEnabled
-																	? t("twoFaEnabled")
-																	: t("twoFaDisabled")}
+																	? t('twoFaEnabled')
+																	: t('twoFaDisabled')}
 															</TableCell>
 															<TableCell className="text-center">
 																<span className="text-sm text-muted-foreground">
-																	{format(new Date(member.createdAt), "PPpp")}
+																	{format(new Date(member.createdAt), 'PPpp')}
 																</span>
 															</TableCell>
 
@@ -196,14 +196,14 @@ export const ShowUsers = () => {
 																				className="h-8 w-8 p-0"
 																			>
 																				<span className="sr-only">
-																					{t("openMenu")}
+																					{t('openMenu')}
 																				</span>
-																				<MoreHorizontal className="h-4 w-4" />
+																				<MoreHorizontal className="h-4 w-4"/>
 																			</Button>
 																		</DropdownMenuTrigger>
 																		<DropdownMenuContent align="end">
 																			<DropdownMenuLabel>
-																				{t("actionsLabel")}
+																				{t('actionsLabel')}
 																			</DropdownMenuLabel>
 
 																			{canChangeRole && (
@@ -223,9 +223,9 @@ export const ShowUsers = () => {
 
 																			{canDelete && (
 																				<DialogAction
-																					title={t("deleteUserTitle")}
+																					title={t('deleteUserTitle')}
 																					description={t(
-																						"deleteUserDescription",
+																						'deleteUserDescription',
 																					)}
 																					type="destructive"
 																					onClick={async () => {
@@ -234,32 +234,32 @@ export const ShowUsers = () => {
 																						})
 																							.then(() => {
 																								toast.success(
-																									t("deleteUserSuccess"),
-																								);
-																								refetch();
+																									t('deleteUserSuccess'),
+																								)
+																								refetch()
 																							})
 																							.catch((err) => {
 																								toast.error(
 																									err?.message ||
-																										t("deleteUserError"),
-																								);
-																							});
+																									t('deleteUserError'),
+																								)
+																							})
 																					}}
 																				>
 																					<DropdownMenuItem
 																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						{t("deleteUserAction")}
+																						{t('deleteUserAction')}
 																					</DropdownMenuItem>
 																				</DialogAction>
 																			)}
 
 																			{canUnlink && (
 																				<DialogAction
-																					title={t("unlinkUserTitle")}
+																					title={t('unlinkUserTitle')}
 																					description={t(
-																						"unlinkUserDescription",
+																						'unlinkUserDescription',
 																					)}
 																					type="destructive"
 																					onClick={async () => {
@@ -269,7 +269,7 @@ export const ShowUsers = () => {
 																									{
 																										userId: member.user.id,
 																									},
-																								);
+																								)
 
 																							if (orgCount === 1) {
 																								await mutateAsync({
@@ -277,33 +277,33 @@ export const ShowUsers = () => {
 																								})
 																									.then(() => {
 																										toast.success(
-																											t("deleteUserSuccess"),
-																										);
-																										refetch();
+																											t('deleteUserSuccess'),
+																										)
+																										refetch()
 																									})
 																									.catch(() => {
 																										toast.error(
-																											t("deleteUserError"),
-																										);
-																									});
-																								return;
+																											t('deleteUserError'),
+																										)
+																									})
+																								return
 																							}
 																						}
 
-																						const { error } =
+																						const {error} =
 																							await authClient.organization.removeMember(
 																								{
 																									memberIdOrEmail: member.id,
 																								},
-																							);
+																							)
 
 																						if (!error) {
 																							toast.success(
-																								t("unlinkUserSuccess"),
-																							);
-																							refetch();
+																								t('unlinkUserSuccess'),
+																							)
+																							refetch()
 																						} else {
-																							toast.error(t("unlinkUserError"));
+																							toast.error(t('unlinkUserError'))
 																						}
 																					}}
 																				>
@@ -311,7 +311,7 @@ export const ShowUsers = () => {
 																						className="w-full cursor-pointer text-red-500 hover:!text-red-600"
 																						onSelect={(e) => e.preventDefault()}
 																					>
-																						{t("unlinkUserAction")}
+																						{t('unlinkUserAction')}
 																					</DropdownMenuItem>
 																				</DialogAction>
 																			)}
@@ -324,14 +324,14 @@ export const ShowUsers = () => {
 																		disabled
 																	>
 																		<span className="sr-only">
-																			{t("noActions")}
+																			{t('noActions')}
 																		</span>
-																		<MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+																		<MoreHorizontal className="h-4 w-4 text-muted-foreground"/>
 																	</Button>
 																)}
 															</TableCell>
 														</TableRow>
-													);
+													)
 												})}
 											</TableBody>
 										</Table>
@@ -343,5 +343,5 @@ export const ShowUsers = () => {
 				</div>
 			</Card>
 		</div>
-	);
-};
+	)
+}

@@ -1,43 +1,48 @@
-import { IS_CLOUD } from "@dokploy/server/constants";
-import { validateRequest } from "@dokploy/server/lib/auth";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
-import superjson from "superjson";
-import { ShowContainers } from "@/components/dashboard/docker/show/show-containers";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { appRouter } from "@/server/api/root";
+import { IS_CLOUD } from '@dokploy/server/constants'
+import { validateRequest } from '@dokploy/server/lib/auth'
+import { createServerSideHelpers } from '@trpc/react-query/server'
+import type { GetServerSidePropsContext } from 'next'
+import type { ReactElement } from 'react'
+import superjson from 'superjson'
+import { ShowContainers } from '@/components/dashboard/docker/show/show-containers'
+import { DashboardLayout } from '@/components/layouts/dashboard-layout'
+import { appRouter } from '@/server/api/root'
+import { isSuperAdmin } from '../../server/api'
 
 const Dashboard = () => {
-	return <ShowContainers />;
-};
+	return <ShowContainers/>
+}
 
-export default Dashboard;
+export default Dashboard
 
 Dashboard.getLayout = (page: ReactElement) => {
-	return <DashboardLayout pageTitleKey="docker">{page}</DashboardLayout>;
-};
+	return <DashboardLayout pageTitleKey="docker">{page}</DashboardLayout>
+}
+
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	if (IS_CLOUD) {
+
+	const {user, session} = await validateRequest(ctx.req)
+
+	if (IS_CLOUD && !isSuperAdmin(user)) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/dashboard/projects",
+				destination: '/dashboard/projects',
 			},
-		};
+		}
 	}
-	const { user, session } = await validateRequest(ctx.req);
+
 	if (!user) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/",
+				destination: '/',
 			},
-		};
+		}
 	}
-	const { req, res } = ctx;
+	const {req, res} = ctx
 
 	const helpers = createServerSideHelpers({
 		router: appRouter,
@@ -49,28 +54,28 @@ export async function getServerSideProps(
 			user: user as any,
 		},
 		transformer: superjson,
-	});
+	})
 	try {
-		await helpers.project.all.prefetch();
+		await helpers.project.all.prefetch()
 
-		const userPermissions = await helpers.user.getPermissions.fetch();
+		const userPermissions = await helpers.user.getPermissions.fetch()
 
 		if (!userPermissions?.docker.read) {
 			return {
 				redirect: {
 					permanent: true,
-					destination: "/",
+					destination: '/',
 				},
-			};
+			}
 		}
 		return {
 			props: {
 				trpcState: helpers.dehydrate(),
 			},
-		};
+		}
 	} catch {
 		return {
 			props: {},
-		};
+		}
 	}
 }

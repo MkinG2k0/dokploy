@@ -1,21 +1,25 @@
+import { ShowInvitations } from '@/components/dashboard/settings/users/show-invitations'
+import { ShowUsers } from '@/components/dashboard/settings/users/show-users'
+import { DashboardLayout } from '@/components/layouts/dashboard-layout'
+import { ManageCustomRoles } from '@/components/proprietary/roles/manage-custom-roles'
+import { appRouter } from '@/server/api/root'
+import { api } from '@/utils/api'
 import { validateRequest } from '@dokploy/server'
 import { createServerSideHelpers } from '@trpc/react-query/server'
 import type { GetServerSidePropsContext } from 'next'
 import type { ReactElement } from 'react'
 import superjson from 'superjson'
-import { DashboardLayout } from '@/components/layouts/dashboard-layout'
-import { ManageCustomRoles } from '@/components/proprietary/roles/manage-custom-roles'
-import { ShowInvitations } from '@/components/dashboard/settings/users/show-invitations'
-import { ShowUsers } from '@/components/dashboard/settings/users/show-users'
-import { appRouter } from '@/server/api/root'
-import { api } from '@/utils/api'
-import { isSuperAdmin } from '../../../server/api'
+import { TableUsers } from './tableUsers'
 
 const Page = () => {
 	const {data: auth} = api.user.get.useQuery()
 	const {data: permissions} = api.user.getPermissions.useQuery()
 	const isOwnerOrAdmin = auth?.role === 'owner' || auth?.role === 'admin'
 	const canCreateMembers = (permissions?.member.create ?? false)
+
+	if (auth?.isSuperAdmin) {
+		return <TableUsers/>
+	}
 
 	return (
 		<div className="flex flex-col gap-4 w-full">

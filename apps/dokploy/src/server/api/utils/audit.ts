@@ -31,5 +31,5 @@ export const audit = (ctx: AuditCtx, event: AuditEvent) =>
 	})
 
 export const isSuperAdmin = <T extends { email: string, emailVerified: boolean } | undefined>(user?: T) => {
-	return user?.email === process.env.SUPER_ADMIN_EMAIL && user?.emailVerified
+	return Boolean(user?.email === process.env.SUPER_ADMIN_EMAIL && user?.emailVerified)
 }
