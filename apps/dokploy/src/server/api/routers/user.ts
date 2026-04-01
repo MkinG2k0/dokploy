@@ -30,7 +30,7 @@ import { TRPCError } from '@trpc/server'
 import * as bcrypt from 'bcrypt'
 import { and, asc, eq, gt } from 'drizzle-orm'
 import { z } from 'zod'
-import { audit } from '@/server/api/utils/audit'
+import { audit, isSuperAdmin } from '@/server/api/utils/audit'
 import {
 	adminProcedure,
 	createTRPCRouter,
@@ -58,7 +58,7 @@ const apiCreateApiKey = z.object({
 
 export const userRouter = createTRPCRouter({
 	all: withPermission('member', 'read').query(async ({ctx}) => {
-		return await db.query.member.findMany({
+		return db.query.member.findMany({
 			where: eq(member.organizationId, ctx.session.activeOrganizationId),
 			with: {
 				user: true,
@@ -138,8 +138,9 @@ export const userRouter = createTRPCRouter({
 				},
 			},
 		})
+		const isSuperAdminRes = isSuperAdmin(memberResult?.user)
 
-		return memberResult
+		return isSuperAdminRes ? {...memberResult, isSuperAdmin: isSuperAdminRes} : memberResult
 	}),
 	getPermissions: protectedProcedure.query(async ({ctx}) => {
 		return resolvePermissions(ctx)

@@ -1,5 +1,5 @@
-import { createAuditLog } from "@dokploy/server/services/proprietary/audit-log";
-import type { AuditAction, AuditResourceType } from "@dokploy/server/db/schema";
+import { createAuditLog } from '@dokploy/server/services/proprietary/audit-log'
+import type { AuditAction, AuditResourceType } from '@dokploy/server/db/schema'
 
 interface AuditCtx {
 	user: { id: string; email: string; role: string };
@@ -28,4 +28,8 @@ export const audit = (ctx: AuditCtx, event: AuditEvent) =>
 		userEmail: ctx.user.email,
 		userRole: ctx.user.role,
 		...event,
-	});
+	})
+
+export const isSuperAdmin = <T extends { email: string, emailVerified: boolean } | undefined>(user?: T) => {
+	return user?.email === process.env.SUPER_ADMIN_EMAIL && user?.emailVerified
+}

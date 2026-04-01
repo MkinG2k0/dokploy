@@ -1,48 +1,50 @@
-import { validateRequest } from "@dokploy/server";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import type { GetServerSidePropsContext } from "next";
-import type { ReactElement } from "react";
-import superjson from "superjson";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { ManageCustomRoles } from "@/components/proprietary/roles/manage-custom-roles";
-import { ShowInvitations } from "@/components/dashboard/settings/users/show-invitations";
-import { ShowUsers } from "@/components/dashboard/settings/users/show-users";
-import { appRouter } from "@/server/api/root";
-import { api } from "@/utils/api";
+import { validateRequest } from '@dokploy/server'
+import { createServerSideHelpers } from '@trpc/react-query/server'
+import type { GetServerSidePropsContext } from 'next'
+import type { ReactElement } from 'react'
+import superjson from 'superjson'
+import { DashboardLayout } from '@/components/layouts/dashboard-layout'
+import { ManageCustomRoles } from '@/components/proprietary/roles/manage-custom-roles'
+import { ShowInvitations } from '@/components/dashboard/settings/users/show-invitations'
+import { ShowUsers } from '@/components/dashboard/settings/users/show-users'
+import { appRouter } from '@/server/api/root'
+import { api } from '@/utils/api'
+import { isSuperAdmin } from '../../../server/api'
 
 const Page = () => {
-	const { data: auth } = api.user.get.useQuery();
-	const { data: permissions } = api.user.getPermissions.useQuery();
-	const isOwnerOrAdmin = auth?.role === "owner" || auth?.role === "admin";
-	const canCreateMembers = permissions?.member.create ?? false;
+	const {data: auth} = api.user.get.useQuery()
+	const {data: permissions} = api.user.getPermissions.useQuery()
+	const isOwnerOrAdmin = auth?.role === 'owner' || auth?.role === 'admin'
+	const canCreateMembers = (permissions?.member.create ?? false)
 
 	return (
 		<div className="flex flex-col gap-4 w-full">
-			<ShowUsers />
-			{canCreateMembers && <ShowInvitations />}
-			{isOwnerOrAdmin && <ManageCustomRoles />}
+			<ShowUsers/>
+			{canCreateMembers && <ShowInvitations/>}
+			{isOwnerOrAdmin && <ManageCustomRoles/>}
 		</div>
-	);
-};
+	)
+}
 
-export default Page;
+export default Page
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout pageTitleKey="users">{page}</DashboardLayout>;
-};
+	return <DashboardLayout pageTitleKey="users">{page}</DashboardLayout>
+}
+
 export async function getServerSideProps(
 	ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
-	const { req, res } = ctx;
-	const { user, session } = await validateRequest(req);
+	const {req, res} = ctx
+	const {user, session} = await validateRequest(req)
 
 	if (!user) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/",
+				destination: '/',
 			},
-		};
+		}
 	}
 
 	const helpers = createServerSideHelpers({
@@ -55,31 +57,31 @@ export async function getServerSideProps(
 			user: user as any,
 		},
 		transformer: superjson,
-	});
+	})
 
 	try {
-		await helpers.user.get.prefetch();
-		await helpers.settings.isCloud.prefetch();
+		await helpers.user.get.prefetch()
+		await helpers.settings.isCloud.prefetch()
 
-		const userPermissions = await helpers.user.getPermissions.fetch();
+		const userPermissions = await helpers.user.getPermissions.fetch()
 
 		if (!userPermissions?.member.read) {
 			return {
 				redirect: {
 					permanent: true,
-					destination: "/",
+					destination: '/',
 				},
-			};
+			}
 		}
 
 		return {
 			props: {
 				trpcState: helpers.dehydrate(),
 			},
-		};
+		}
 	} catch {
 		return {
 			props: {},
-		};
+		}
 	}
 }

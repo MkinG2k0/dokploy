@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { Loader2, Lock } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Loader2, Lock } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
+} from '@/components/ui/card'
+import { api } from '@/utils/api'
 
 interface EnterpriseFeatureLockedProps {
 	/** Optional title override */
@@ -30,28 +30,28 @@ interface EnterpriseFeatureLockedProps {
  * Use standalone or via EnterpriseFeatureGate.
  */
 export function EnterpriseFeatureLocked({
-	title = "Enterprise feature",
-	description = "This feature is part of Dokploy Enterprise. Add a valid license to use it.",
-	ctaLabel = "Go to License",
-	ctaHref = "/dashboard/settings/license",
+	title = 'Enterprise feature',
+	description = 'This feature is part of Dokploy Enterprise. Add a valid license to use it.',
+	ctaLabel = 'Go to License',
+	ctaHref = '/dashboard/settings/license',
 	compact = false,
 }: EnterpriseFeatureLockedProps) {
 	return (
 		<Card className="border-dashed bg-transparent">
-			<CardHeader className={compact ? "pb-2" : undefined}>
+			<CardHeader className={compact ? 'pb-2' : undefined}>
 				<div className="flex flex-col items-center gap-3 text-center">
 					<div
 						className={
 							compact
-								? "rounded-full bg-muted p-3"
-								: "rounded-full bg-muted p-4"
+								? 'rounded-full bg-muted p-3'
+								: 'rounded-full bg-muted p-4'
 						}
 					>
 						<Lock
 							className={
 								compact
-									? "size-6 text-muted-foreground"
-									: "size-8 text-muted-foreground"
+									? 'size-6 text-muted-foreground'
+									: 'size-8 text-muted-foreground'
 							}
 						/>
 					</div>
@@ -63,21 +63,26 @@ export function EnterpriseFeatureLocked({
 					</div>
 				</div>
 			</CardHeader>
-			<CardContent className={compact ? "pt-0" : undefined}>
+			<CardContent className={compact ? 'pt-0' : undefined}>
 				<div className="flex justify-center">
-					<Button asChild variant="secondary" size={compact ? "sm" : "default"}>
-						<Link href={ctaHref}>{ctaLabel}</Link>
+					<Button asChild variant="secondary" size={compact ? 'sm' : 'default'}>
+						<Link
+							href="/dashboard/settings/billing"
+							className="text-sm font-medium text-primary hover:underline"
+						>
+							{ctaLabel}
+						</Link>
 					</Button>
 				</div>
 			</CardContent>
 		</Card>
-	);
+	)
 }
 
 interface EnterpriseFeatureGateProps {
 	children: React.ReactNode;
 	/** Props for the locked state when license is invalid */
-	lockedProps?: Omit<EnterpriseFeatureLockedProps, "compact">;
+	lockedProps?: Omit<EnterpriseFeatureLockedProps, 'compact'>;
 	/** Show loading spinner while checking license */
 	fallback?: React.ReactNode;
 }
@@ -91,24 +96,25 @@ export function EnterpriseFeatureGate({
 	lockedProps,
 	fallback,
 }: EnterpriseFeatureGateProps) {
-	const { data: haveValidLicense, isPending } =
-		api.licenseKey.haveValidLicenseKey.useQuery();
+	const {data: haveValidLicense, isPending} =
+		api.licenseKey.haveValidLicenseKey.useQuery()
 
 	if (isPending) {
-		if (fallback) return <>{fallback}</>;
+		if (fallback) return <>{fallback}</>
 		return (
 			<div className="flex items-center gap-2 justify-center min-h-[25vh]">
-				<Loader2 className="size-6 text-muted-foreground animate-spin" />
+				<Loader2 className="size-6 text-muted-foreground animate-spin"/>
 				<span className="text-sm text-muted-foreground">
 					Checking license...
 				</span>
 			</div>
-		);
+		)
 	}
 
-	if (!haveValidLicense) {
-		return <EnterpriseFeatureLocked {...lockedProps} />;
-	}
+	// TODO добавить свою подписку
+	// if (!haveValidLicense) {
+	// 	return <EnterpriseFeatureLocked {...lockedProps} />
+	// }
 
-	return <>{children}</>;
+	return <>{children}</>
 }

@@ -1,194 +1,202 @@
-import { db } from "@dokploy/server/db";
-import { user } from "@dokploy/server/db/schema";
-import { hasValidLicense, validateLicenseKey } from "@dokploy/server/index";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { z } from "zod";
+import { db } from '@dokploy/server/db'
+import { user } from '@dokploy/server/db/schema'
+import { hasValidLicense, validateLicenseKey } from '@dokploy/server/index'
+import { TRPCError } from '@trpc/server'
+import { eq } from 'drizzle-orm'
+import { z } from 'zod'
 import {
 	adminProcedure,
 	createTRPCRouter,
 	protectedProcedure,
-} from "@/server/api/trpc";
+} from '@/server/api/trpc'
 import {
 	activateLicenseKey,
 	deactivateLicenseKey,
-} from "@/server/utils/enterprise";
+} from '@/server/utils/enterprise'
+import { isSuperAdmin } from '../../utils/audit'
 
 export const licenseKeyRouter = createTRPCRouter({
 	activate: adminProcedure
-		.input(z.object({ licenseKey: z.string().min(1) }))
-		.mutation(async ({ input, ctx }) => {
+		.input(z.object({licenseKey: z.string().min(1)}))
+		.mutation(async ({input, ctx}) => {
 			try {
-				const currentUserId = ctx.user.id;
+				const currentUserId = ctx.user.id
 				const currentUser = await db.query.user.findFirst({
 					where: eq(user.id, currentUserId),
-				});
+				})
 				if (!currentUser) {
 					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "User not found",
-					});
+						code: 'NOT_FOUND',
+						message: 'User not found',
+					})
 				}
 
-				if (ctx.user.role !== "owner") {
+				if (ctx.user.role !== 'owner') {
 					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You are not authorized to activate a license key",
-					});
+						code: 'FORBIDDEN',
+						message: 'You are not authorized to activate a license key',
+					})
 				}
 
 				if (!currentUser.enableEnterpriseFeatures) {
 					throw new TRPCError({
-						code: "BAD_REQUEST",
+						code: 'BAD_REQUEST',
 						message:
-							"Please activate enterprise features to activate license key",
-					});
+							'Please activate enterprise features to activate license key',
+					})
 				}
 
-				await activateLicenseKey(input.licenseKey);
+				await activateLicenseKey(input.licenseKey)
 				await db
 					.update(user)
 					.set({
 						licenseKey: input.licenseKey,
 						isValidEnterpriseLicense: true,
 					})
-					.where(eq(user.id, currentUserId));
-				return { success: true };
+					.where(eq(user.id, currentUserId))
+				return {success: true}
 			} catch (error) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
+					code: 'INTERNAL_SERVER_ERROR',
 					message:
 						error instanceof Error
 							? error.message
-							: "Failed to activate license key",
+							: 'Failed to activate license key',
 					cause: error,
-				});
+				})
 			}
 		}),
-	validate: adminProcedure.mutation(async ({ ctx }) => {
+	validate: adminProcedure.mutation(async ({ctx}) => {
 		try {
-			const currentUserId = ctx.user.id;
+			const currentUserId = ctx.user.id
 			const currentUser = await db.query.user.findFirst({
 				where: eq(user.id, currentUserId),
-			});
+			})
 			if (!currentUser) {
 				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "User not found",
-				});
+					code: 'NOT_FOUND',
+					message: 'User not found',
+				})
 			}
 
-			if (ctx.user.role !== "owner") {
+			if (ctx.user.role !== 'owner') {
 				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You are not authorized to validate a license key",
-				});
+					code: 'FORBIDDEN',
+					message: 'You are not authorized to validate a license key',
+				})
 			}
 
 			if (!currentUser.licenseKey) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No license key found",
-				});
+					code: 'BAD_REQUEST',
+					message: 'No license key found',
+				})
 			}
 
 			if (!currentUser.enableEnterpriseFeatures) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
+					code: 'BAD_REQUEST',
 					message:
-						"Please activate enterprise features to validate license key",
-				});
+						'Please activate enterprise features to validate license key',
+				})
 			}
-			const valid = await validateLicenseKey(currentUser.licenseKey);
+			const valid = await validateLicenseKey(currentUser.licenseKey)
 			if (valid) {
 				await db
 					.update(user)
-					.set({ isValidEnterpriseLicense: true })
-					.where(eq(user.id, currentUserId));
+					.set({isValidEnterpriseLicense: true})
+					.where(eq(user.id, currentUserId))
 			}
-			return valid;
+			return valid
 		} catch (error) {
 			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
+				code: 'INTERNAL_SERVER_ERROR',
 				message:
 					error instanceof Error
 						? error.message
-						: "Failed to validate license key",
-			});
+						: 'Failed to validate license key',
+			})
 		}
 	}),
-	deactivate: adminProcedure.mutation(async ({ ctx }) => {
+	deactivate: adminProcedure.mutation(async ({ctx}) => {
 		try {
-			const currentUserId = ctx.user.id;
+			const currentUserId = ctx.user.id
 			const currentUser = await db.query.user.findFirst({
 				where: eq(user.id, currentUserId),
-			});
+			})
 			if (!currentUser) {
 				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "User not found",
-				});
+					code: 'NOT_FOUND',
+					message: 'User not found',
+				})
 			}
 			if (!currentUser.licenseKey) {
 				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No license key found",
-				});
+					code: 'BAD_REQUEST',
+					message: 'No license key found',
+				})
 			}
 
-			if (ctx.user.role !== "owner") {
+			if (ctx.user.role !== 'owner') {
 				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You are not authorized to deactivate a license key",
-				});
+					code: 'FORBIDDEN',
+					message: 'You are not authorized to deactivate a license key',
+				})
 			}
 
-			await deactivateLicenseKey(currentUser.licenseKey);
+			await deactivateLicenseKey(currentUser.licenseKey)
 			await db
 				.update(user)
 				.set({
 					licenseKey: null,
 					isValidEnterpriseLicense: false,
 				})
-				.where(eq(user.id, currentUserId));
-			return { success: true };
+				.where(eq(user.id, currentUserId))
+			return {success: true}
 		} catch (error) {
 			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
+				code: 'INTERNAL_SERVER_ERROR',
 				message:
 					error instanceof Error
 						? error.message
-						: "Failed to deactivate license key",
-			});
+						: 'Failed to deactivate license key',
+			})
 		}
 	}),
-	getEnterpriseSettings: adminProcedure.query(async ({ ctx }) => {
-		const currentUserId = ctx.user.id;
+	getEnterpriseSettings: adminProcedure.query(async ({ctx}) => {
+		const currentUserId = ctx.user.id
 		const currentUser = await db.query.user.findFirst({
 			where: eq(user.id, currentUserId),
-		});
+		})
 
 		if (!currentUser) {
 			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "User not found",
-			});
+				code: 'NOT_FOUND',
+				message: 'User not found',
+			})
 		}
 
-		if (ctx.user.role !== "owner") {
+		if (ctx.user.role !== 'owner') {
 			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "You are not authorized to get enterprise settings",
-			});
+				code: 'FORBIDDEN',
+				message: 'You are not authorized to get enterprise settings',
+			})
 		}
 
 		return {
 			enableEnterpriseFeatures: !!currentUser.enableEnterpriseFeatures,
-			licenseKey: currentUser.licenseKey ?? "",
-		};
+			licenseKey: currentUser.licenseKey ?? '',
+		}
 	}),
-	haveValidLicenseKey: protectedProcedure.query(async ({ ctx }) => {
-		return await hasValidLicense(ctx.session.activeOrganizationId);
+	haveValidLicenseKey: protectedProcedure.query(async ({ctx}) => {
+
+		// Админу даем права на все
+		if (isSuperAdmin(ctx.user)) {
+			return true
+		}
+
+		// TODO встроить свою подписку
+		return await hasValidLicense(ctx.session.activeOrganizationId)
 	}),
 	updateEnterpriseSettings: adminProcedure
 		.input(
@@ -196,22 +204,22 @@ export const licenseKeyRouter = createTRPCRouter({
 				enableEnterpriseFeatures: z.boolean().optional(),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ctx, input}) => {
 			try {
-				const currentUserId = ctx.user.id;
+				const currentUserId = ctx.user.id
 
 				if (input.enableEnterpriseFeatures === undefined) {
 					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "enableEnterpriseFeatures must be provided",
-					});
+						code: 'BAD_REQUEST',
+						message: 'enableEnterpriseFeatures must be provided',
+					})
 				}
 
-				if (ctx.user.role !== "owner") {
+				if (ctx.user.role !== 'owner' && ctx.user.role !== 'admin') {
 					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You are not authorized to update enterprise settings",
-					});
+						code: 'FORBIDDEN',
+						message: 'You are not authorized to update enterprise settings',
+					})
 				}
 
 				await db
@@ -219,17 +227,17 @@ export const licenseKeyRouter = createTRPCRouter({
 					.set({
 						enableEnterpriseFeatures: input.enableEnterpriseFeatures,
 					})
-					.where(eq(user.id, currentUserId));
+					.where(eq(user.id, currentUserId))
 
-				return true;
+				return true
 			} catch (error) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
+					code: 'INTERNAL_SERVER_ERROR',
 					message:
 						error instanceof Error
 							? error.message
-							: "Failed to update enterprise settings",
-				});
+							: 'Failed to update enterprise settings',
+				})
 			}
 		}),
-});
+})

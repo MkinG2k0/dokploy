@@ -1,17 +1,18 @@
-import { validateRequest } from "@dokploy/server";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import type { GetServerSidePropsContext } from "next";
-import { useTranslations } from "next-intl";
-import type { ReactElement } from "react";
-import superjson from "superjson";
-import { DashboardLayout } from "@/components/layouts/dashboard-layout";
-import { EnterpriseFeatureGate } from "@/components/proprietary/enterprise-feature-gate";
-import { WhitelabelingSettings } from "@/components/proprietary/whitelabeling/whitelabeling-settings";
-import { Card } from "@/components/ui/card";
-import { appRouter } from "@/server/api/root";
+import { validateRequest } from '@dokploy/server'
+import { createServerSideHelpers } from '@trpc/react-query/server'
+import type { GetServerSidePropsContext } from 'next'
+import { useTranslations } from 'next-intl'
+import type { ReactElement } from 'react'
+import superjson from 'superjson'
+import { DashboardLayout } from '@/components/layouts/dashboard-layout'
+import { EnterpriseFeatureGate } from '@/components/proprietary/enterprise-feature-gate'
+import { WhitelabelingSettings } from '@/components/proprietary/whitelabeling/whitelabeling-settings'
+import { Card } from '@/components/ui/card'
+import { appRouter } from '@/server/api/root'
+import { isSuperAdmin } from '../../../server/api'
 
 const Page = () => {
-	const t = useTranslations("enterpriseSettings");
+	const t = useTranslations('enterpriseSettings')
 	return (
 		<div className="w-full">
 			<div className="h-full rounded-xl max-w-5xl mx-auto flex flex-col gap-4">
@@ -20,45 +21,47 @@ const Page = () => {
 						<div className="p-6">
 							<EnterpriseFeatureGate
 								lockedProps={{
-									title: t("whitelabelingLockedTitle"),
-									description: t("whitelabelingLockedDescription"),
-									ctaLabel: t("goToLicense"),
+									title: t('whitelabelingLockedTitle'),
+									description: t('whitelabelingLockedDescription'),
+									ctaLabel: t('goToLicense'),
 								}}
 							>
-								<WhitelabelingSettings />
+								<WhitelabelingSettings/>
 							</EnterpriseFeatureGate>
 						</div>
 					</div>
 				</Card>
 			</div>
 		</div>
-	);
-};
+	)
+}
 
-export default Page;
+export default Page
 
 Page.getLayout = (page: ReactElement) => {
-	return <DashboardLayout pageTitleKey="whitelabeling">{page}</DashboardLayout>;
-};
+	return <DashboardLayout pageTitleKey="whitelabeling">{page}</DashboardLayout>
+}
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-	const { req, res } = ctx;
-	const { user, session } = await validateRequest(ctx.req);
+	const {req, res} = ctx
+	const {user, session} = await validateRequest(ctx.req)
+
 	if (!user) {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/",
+				destination: '/',
 			},
-		};
+		}
 	}
-	if (user.role !== "owner") {
+
+	if (user.role !== 'owner') {
 		return {
 			redirect: {
 				permanent: true,
-				destination: "/dashboard/settings/profile",
+				destination: '/dashboard/settings/profile',
 			},
-		};
+		}
 	}
 
 	const helpers = createServerSideHelpers({
@@ -71,12 +74,12 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 			user: user as any,
 		},
 		transformer: superjson,
-	});
-	await helpers.user.get.prefetch();
+	})
+	await helpers.user.get.prefetch()
 
 	return {
 		props: {
 			trpcState: helpers.dehydrate(),
 		},
-	};
+	}
 }
