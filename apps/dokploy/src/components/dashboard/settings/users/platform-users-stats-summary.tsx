@@ -1,77 +1,82 @@
-import { useMemo } from "react";
-import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
-import type { PlatformMembershipRow } from "./platform-membership-table-row";
+import { useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+import { cn } from '@/lib/utils'
+import type { PlatformMembershipRow } from './platform-membership-table-row'
 import {
-  computePlatformUsersStats,
-  type PlatformUsersStats,
-} from "./platform-users-stats";
-
-const statsGridClass =
-  "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6";
-
-const statCardClass =
-  "flex flex-col gap-1 rounded-lg border border-border bg-card p-4";
+	computePlatformUsersStats,
+	type PlatformUsersStats,
+} from './platform-users-stats'
 
 interface StatItemProps {
-  label: string;
-  value: number;
-  emphasize?: boolean;
-  className?: string;
+	label: string;
+	value: number;
+	emphasize?: boolean;
+	className?: string;
 }
 
-const StatItem = ({ label, value, emphasize, className }: StatItemProps) => (
-  <div className={cn(statCardClass, className)}>
-    <span className="text-xs text-muted-foreground">{label}</span>
-    <span
-      className={cn(
-        "text-2xl font-semibold tabular-nums tracking-tight",
-        emphasize && value > 0 && "text-destructive",
-      )}
-    >
+const StatItem = ({label, value, emphasize, className}: StatItemProps) => (
+	<div
+		className={cn(
+			'flex justify-between min-h-20 flex-col gap-1 rounded-lg border border-border bg-card p-4',
+			className,
+		)}
+	>
+		<span className="text-xs leading-snug text-muted-foreground">{label}</span>
+		<span
+			className={cn(
+				'text-2xl font-semibold tabular-nums tracking-tight',
+				emphasize && value > 0 && 'text-destructive',
+			)}
+		>
       {value}
     </span>
-  </div>
-);
+	</div>
+)
 
 const STATS_CONFIG: {
-  key: keyof PlatformUsersStats;
-  labelKey: string;
-  emphasize?: boolean;
+	key: keyof PlatformUsersStats;
+	labelKey: string;
+	emphasize?: boolean;
 }[] = [
-  { key: "totalMemberships", labelKey: "platformStatMemberships" },
-  { key: "uniqueUsers", labelKey: "platformStatUniqueUsers" },
-  { key: "uniqueOrganizations", labelKey: "platformStatOrganizations" },
-  {
-    key: "usersWithActiveSubscription",
-    labelKey: "platformStatActiveSubscriptions",
-  },
-  { key: "usersWithTwoFactor", labelKey: "platformStatTwoFactor" },
-  { key: "usersBanned", labelKey: "platformStatBanned", emphasize: true },
-];
+	{key: 'totalMemberships', labelKey: 'platformStatMemberships'},
+	{key: 'uniqueUsers', labelKey: 'platformStatUniqueUsers'},
+	{key: 'uniqueOrganizations', labelKey: 'platformStatOrganizations'},
+	{
+		key: 'usersWithActiveSubscription',
+		labelKey: 'platformStatActiveSubscriptions',
+	},
+	{key: 'usersWithTwoFactor', labelKey: 'platformStatTwoFactor'},
+	{key: 'usersBanned', labelKey: 'platformStatBanned', emphasize: true},
+]
 
 interface PlatformUsersStatsSummaryProps {
-  data: PlatformMembershipRow[];
-  className?: string;
+	data: PlatformMembershipRow[];
+	className?: string;
 }
 
 export const PlatformUsersStatsSummary = ({
-  data,
-  className,
+	data,
+	className,
 }: PlatformUsersStatsSummaryProps) => {
-  const t = useTranslations("settingsUsers");
-  const stats = useMemo(() => computePlatformUsersStats(data), [data]);
+	const t = useTranslations('settingsUsers')
+	const stats = useMemo(() => computePlatformUsersStats(data), [data])
 
-  return (
-    <div className={cn(statsGridClass, className)} role="region">
-      {STATS_CONFIG.map(({ key, labelKey, emphasize }) => (
-        <StatItem
-          key={key}
-          label={t(labelKey)}
-          value={stats[key]}
-          emphasize={emphasize}
-        />
-      ))}
-    </div>
-  );
-};
+	return (
+		<div
+			className={cn(
+				'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6',
+				className,
+			)}
+			role="region"
+		>
+			{STATS_CONFIG.map(({key, labelKey, emphasize}) => (
+				<StatItem
+					key={key}
+					label={t(labelKey)}
+					value={stats[key]}
+					emphasize={emphasize}
+				/>
+			))}
+		</div>
+	)
+}

@@ -3,6 +3,7 @@ import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { applicationRouter } from "./routers/application";
 import { backupRouter } from "./routers/backup";
+import { billingAdminRouter } from "./routers/billing-admin";
 import { billingRouter } from "./routers/billing";
 import { bitbucketRouter } from "./routers/bitbucket";
 import { certificateRouter } from "./routers/certificate";
@@ -68,6 +69,7 @@ export const appRouter = createTRPCRouter({
 	destination: destinationRouter,
 	backup: backupRouter,
 	billing: billingRouter,
+	billingAdmin: billingAdminRouter,
 	deployment: deploymentRouter,
 	previewDeployment: previewDeploymentRouter,
 	mounts: mountRouter,
