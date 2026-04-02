@@ -74,9 +74,7 @@ export const OnboardingNextActions = ({
 					</CardHeader>
 					<CardContent>
 						<Button variant="secondary" size="sm" asChild disabled={!isPro}>
-							<Link href="/dashboard/settings/notifications">
-								{t("next")}
-							</Link>
+							<Link href="/dashboard/settings/notifications">{t("next")}</Link>
 						</Button>
 					</CardContent>
 				</Card>

@@ -8,6 +8,8 @@ import {
 	getPublicIpWithFallback,
 	haveActiveServices,
 	IS_CLOUD,
+	includeSshOrOnboardingTestServer,
+	ONBOARDING_TEST_SERVER_NAME,
 	removeDeploymentsByServerId,
 	serverAudit,
 	serverSetup,
@@ -61,7 +63,12 @@ export const serverRouter = createTRPCRouter({
 			try {
 				const user = await findUserById(ctx.user.ownerId);
 				const servers = await findServersByUserId(user.id);
-				if (IS_CLOUD && servers.length >= user.serversQuantity) {
+				const billableCount = servers.filter(
+					(s) =>
+						s.provisionSource !== "test" &&
+						s.name !== ONBOARDING_TEST_SERVER_NAME,
+				).length;
+				if (IS_CLOUD && billableCount >= user.serversQuantity) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: "You cannot create more servers",
@@ -152,17 +159,18 @@ export const serverRouter = createTRPCRouter({
 		return servers.length ?? 0;
 	}),
 	withSSHKey: withPermission("server", "read").query(async ({ ctx }) => {
+		const sshOrOnboardingTest = includeSshOrOnboardingTestServer();
 		const result = await db.query.server.findMany({
 			orderBy: desc(server.createdAt),
 			where: IS_CLOUD
 				? and(
-						isNotNull(server.sshKeyId),
+						sshOrOnboardingTest,
 						eq(server.organizationId, ctx.session.activeOrganizationId),
 						eq(server.serverStatus, "active"),
 						eq(server.serverType, "deploy"),
 					)
 				: and(
-						isNotNull(server.sshKeyId),
+						sshOrOnboardingTest,
 						eq(server.organizationId, ctx.session.activeOrganizationId),
 						eq(server.serverType, "deploy"),
 					),

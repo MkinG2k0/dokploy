@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/utils/api";
-import type { OnboardingDraft } from "./onboarding-draft-types";
 import { OnboardingDeployLog } from "./onboarding-deploy-log";
+import type { OnboardingDraft } from "./onboarding-draft-types";
 import { OnboardingNextActions } from "./onboarding-next-actions";
 import { slugifyForDomain } from "./onboarding-storage";
 
@@ -121,8 +121,7 @@ export const OnboardingStepDeploy = ({
 					enableSubmodules: false,
 				});
 			} else {
-				const slug =
-					draft.repositorySlug ?? draft.repositoryName;
+				const slug = draft.repositorySlug ?? draft.repositoryName;
 				await saveBitbucket.mutateAsync({
 					applicationId,
 					bitbucketId: draft.providerIntegrationId,
@@ -233,7 +232,9 @@ export const OnboardingStepDeploy = ({
 	if (draft.skippedRepo || phase === "skipped") {
 		return (
 			<div className="space-y-4">
-				<h2 className="font-mono text-base font-semibold">{t("deployTitle")}</h2>
+				<h2 className="font-mono text-base font-semibold">
+					{t("deployTitle")}
+				</h2>
 				<p className="text-muted-foreground text-sm">{t("deploySkipped")}</p>
 			</div>
 		);
@@ -242,7 +243,9 @@ export const OnboardingStepDeploy = ({
 	return (
 		<div className="space-y-6">
 			<div>
-				<h2 className="font-mono text-base font-semibold">{t("deployTitle")}</h2>
+				<h2 className="font-mono text-base font-semibold">
+					{t("deployTitle")}
+				</h2>
 				<p className="text-muted-foreground mt-1 text-sm">{t("deploying")}</p>
 			</div>
 
@@ -255,11 +258,7 @@ export const OnboardingStepDeploy = ({
 			) : null}
 
 			{(phase === "streaming" || phase === "running") && logPath ? (
-				<OnboardingDeployLog
-					logPath={logPath}
-					serverId={draft.serverId}
-					open
-				/>
+				<OnboardingDeployLog logPath={logPath} serverId={draft.serverId} open />
 			) : null}
 
 			{phase === "streaming" && logPath ? (

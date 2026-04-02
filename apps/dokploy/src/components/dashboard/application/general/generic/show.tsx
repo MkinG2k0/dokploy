@@ -109,7 +109,7 @@ export const ShowProviderForm = ({applicationId, onOnboarding}: Props) => {
 		application.sourceType !== 'drop'
 	) {
 		return (
-			<Card className="group relative w-full bg-transparent">
+			<Card className="group relative w-full ">
 				<CardHeader>
 					<CardTitle className="flex items-start justify-between">
 						<div className="flex flex-col gap-2">
@@ -134,7 +134,7 @@ export const ShowProviderForm = ({applicationId, onOnboarding}: Props) => {
 	}
 
 	return (
-		<Card className="group relative w-full bg-transparent">
+		<Card className="group relative w-full ">
 			<CardHeader>
 				<CardTitle className="flex items-start justify-between">
 					<div className="flex flex-col gap-2">

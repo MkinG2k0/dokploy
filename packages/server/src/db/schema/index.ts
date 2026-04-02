@@ -1,4 +1,5 @@
 export * from "./account";
+export * from "./aeza-onboarding";
 export * from "./ai";
 export * from "./audit-log";
 export * from "./application";

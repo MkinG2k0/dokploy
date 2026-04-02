@@ -175,7 +175,7 @@ export const ShowGitProviders = () => {
 																			{t('actionRequired')}
 																		</Badge>
 																		<Link
-																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
+																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github?.githubId}`}
 																			className={buttonVariants({
 																				size: 'icon',
 																				variant: 'ghost',

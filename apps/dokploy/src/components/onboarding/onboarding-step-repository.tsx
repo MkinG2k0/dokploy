@@ -1,32 +1,7 @@
 import { useTranslations } from 'next-intl'
-import { useMemo } from 'react'
-import {
-	BitbucketIcon,
-	GithubIcon,
-	GitlabIcon,
-} from '@/components/icons/data-tools-icons'
-import { AddBitbucketProvider } from '@/components/dashboard/settings/git/bitbucket/add-bitbucket-provider'
-import { AddGithubProvider } from '@/components/dashboard/settings/git/github/add-github-provider'
-import { AddGitlabProvider } from '@/components/dashboard/settings/git/gitlab/add-gitlab-provider'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { api } from '@/utils/api'
-import { ProviderSourceTabs } from '../dashboard/application/general/generic/provider-source-tabs'
 import { ShowProviderForm } from '../dashboard/application/general/generic/show'
 import { ShowGitProviders } from '../dashboard/settings/git/show-git-providers'
-import type {
-	OnboardingDraft,
-	OnboardingGitProvider,
-} from './onboarding-draft-types'
-import { AddGiteaProvider } from '../dashboard/settings/git/gitea/add-gitea-provider'
+import type { OnboardingDraft } from './onboarding-draft-types'
 
 interface OnboardingStepRepositoryProps {
 	draft: OnboardingDraft;
@@ -34,16 +9,19 @@ interface OnboardingStepRepositoryProps {
 }
 
 export const OnboardingStepRepository = ({
-	draft,
-	onChange,
+	draft: _draft,
+	onChange: _onChange,
 }: OnboardingStepRepositoryProps) => {
 	const t = useTranslations('onboardingWizard')
 
 	return (
 		<div className="space-y-6">
+			<div>
+				<h2 className="font-mono text-base font-semibold">{t('repoTitle')}</h2>
+				<p className="text-muted-foreground mt-1 text-sm">{t('repoHint')}</p>
+			</div>
 			<ShowGitProviders/>
-
-			<ShowProviderForm applicationId={'asd'}/>
+			<ShowProviderForm applicationId={'asd'} onOnboarding/>
 		</div>
 	)
 }

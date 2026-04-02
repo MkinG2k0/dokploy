@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 
 import { PLANS, type PlanKey } from "../billing/plans";
-import { IS_CLOUD } from "../constants";
+import { IS_CLOUD, ONBOARDING_TEST_SERVER_NAME } from "../constants";
 import { db } from "../db";
 import { organization, server, user } from "../db/schema";
 
@@ -36,10 +36,24 @@ export const syncPlanAccessBlockedForOwner = async (
 
 	const servers = await db.query.server.findMany({
 		where: inArray(server.organizationId, orgIds),
-		columns: { serverId: true, createdAt: true, planAccessBlocked: true },
+		columns: {
+			serverId: true,
+			name: true,
+			createdAt: true,
+			planAccessBlocked: true,
+			provisionSource: true,
+		},
 	});
 
-	const sorted = [...servers].sort(
+	const isOnboardingTestServerRow = (s: {
+		name: string;
+		provisionSource: string;
+	}) => s.provisionSource === "test" || s.name === ONBOARDING_TEST_SERVER_NAME;
+
+	const testServers = servers.filter(isOnboardingTestServerRow);
+	const realServers = servers.filter((s) => !isOnboardingTestServerRow(s));
+
+	const sorted = [...realServers].sort(
 		(a, b) =>
 			parseServerCreatedMs(b.createdAt) - parseServerCreatedMs(a.createdAt),
 	);
@@ -54,6 +68,15 @@ export const syncPlanAccessBlockedForOwner = async (
 			await db
 				.update(server)
 				.set({ planAccessBlocked: blocked })
+				.where(eq(server.serverId, s.serverId));
+		}
+	}
+
+	for (const s of testServers) {
+		if (s.planAccessBlocked !== false) {
+			await db
+				.update(server)
+				.set({ planAccessBlocked: false })
 				.where(eq(server.serverId, s.serverId));
 		}
 	}

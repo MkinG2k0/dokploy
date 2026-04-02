@@ -10,7 +10,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { OnboardingDraft, OnboardingBuildKind } from "./onboarding-draft-types";
+import type {
+	OnboardingBuildKind,
+	OnboardingDraft,
+} from "./onboarding-draft-types";
 import { slugifyForDomain } from "./onboarding-storage";
 
 const DOMAIN_SUFFIX =

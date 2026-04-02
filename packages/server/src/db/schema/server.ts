@@ -25,6 +25,11 @@ import { sshKeys } from "./ssh-key";
 import { generateAppName } from "./utils";
 export const serverStatus = pgEnum("serverStatus", ["active", "inactive"]);
 export const serverType = pgEnum("serverType", ["deploy", "build"]);
+export const serverProvisionSource = pgEnum("serverProvisionSource", [
+	"manual",
+	"aeza",
+	"test",
+]);
 
 export const server = pgTable("server", {
 	serverId: text("serverId")
@@ -98,6 +103,11 @@ export const server = pgTable("server", {
 		}),
 	/** Cloud: вне слота по serversQuantity владельца org — мутации сервера запрещены (кроме delete). */
 	planAccessBlocked: boolean("planAccessBlocked").notNull().default(false),
+	provisionSource: serverProvisionSource("provisionSource")
+		.notNull()
+		.default("manual"),
+	/** Внешний ID услуги у провайдера (nullable). Колонка в БД: `serviceId` (миграции 0162+). */
+	serviceId: text("serviceId"),
 });
 
 export const serverRelations = relations(server, ({ one, many }) => ({

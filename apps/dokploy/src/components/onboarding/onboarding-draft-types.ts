@@ -3,7 +3,12 @@ export type OnboardingGitProvider = "github" | "gitlab" | "bitbucket";
 export type OnboardingBuildKind = "nixpacks" | "dockerfile";
 
 export interface OnboardingDraft {
+	/** Пропуск шага репозитория — настройка и репо не заполняются, сразу к деплою после сервера. */
 	skippedRepo?: boolean;
+	/** Пользователь нажал «Пропустить» на шаге настройки (при заполненном репо). */
+	skippedSettings?: boolean;
+	/** Тестовый сервер из списка — деплой только mock (шаг 4). */
+	testServerMode?: boolean;
 	provider?: OnboardingGitProvider;
 	/** githubId | gitlabId | bitbucketId */
 	providerIntegrationId?: string;
@@ -24,9 +29,4 @@ export interface OnboardingDraft {
 	projectId?: string;
 	environmentId?: string;
 	applicationId?: string;
-}
-
-export interface OnboardingStoredState {
-	step: number;
-	draft: OnboardingDraft;
 }

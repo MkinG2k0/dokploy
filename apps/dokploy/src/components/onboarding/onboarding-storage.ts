@@ -1,47 +1,60 @@
-import type { OnboardingDraft, OnboardingStoredState } from "./onboarding-draft-types";
+/** Persisted across refresh: step index only (draft lives in memory for the session). */
+export const ONBOARDING_STEP_STORAGE_KEY = "deploybox-onboarding-step-v2";
 
-export const ONBOARDING_STORAGE_KEY = "deploybox-onboarding-state-v1";
+const LEGACY_ONBOARDING_STORAGE_KEY = "deploybox-onboarding-state-v1";
 
-const defaultDraft = (): OnboardingDraft => ({});
-
-export const loadOnboardingStoredState = (): OnboardingStoredState | null => {
+export const loadOnboardingStep = (): number | null => {
 	if (typeof window === "undefined") {
 		return null;
 	}
 	try {
-		const raw = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
-		if (!raw) {
-			return null;
+		const raw = window.localStorage.getItem(ONBOARDING_STEP_STORAGE_KEY);
+		if (raw) {
+			const parsed = JSON.parse(raw) as { step?: unknown };
+			if (
+				typeof parsed.step === "number" &&
+				parsed.step >= 1 &&
+				parsed.step <= 4
+			) {
+				return parsed.step;
+			}
 		}
-		const parsed = JSON.parse(raw) as OnboardingStoredState;
-		if (
-			typeof parsed.step !== "number" ||
-			parsed.step < 1 ||
-			parsed.step > 4
-		) {
-			return null;
+		const legacyRaw = window.localStorage.getItem(
+			LEGACY_ONBOARDING_STORAGE_KEY,
+		);
+		if (legacyRaw) {
+			const legacy = JSON.parse(legacyRaw) as { step?: unknown };
+			if (
+				typeof legacy.step === "number" &&
+				legacy.step >= 1 &&
+				legacy.step <= 4
+			) {
+				saveOnboardingStep(legacy.step);
+				return legacy.step;
+			}
 		}
-		return {
-			step: parsed.step,
-			draft: { ...defaultDraft(), ...parsed.draft },
-		};
+		return null;
 	} catch {
 		return null;
 	}
 };
 
-export const saveOnboardingStoredState = (state: OnboardingStoredState) => {
+export const saveOnboardingStep = (step: number) => {
 	if (typeof window === "undefined") {
 		return;
 	}
-	window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(state));
+	window.localStorage.setItem(
+		ONBOARDING_STEP_STORAGE_KEY,
+		JSON.stringify({ step }),
+	);
 };
 
-export const clearOnboardingStoredState = () => {
+export const clearOnboardingStep = () => {
 	if (typeof window === "undefined") {
 		return;
 	}
-	window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+	window.localStorage.removeItem(ONBOARDING_STEP_STORAGE_KEY);
+	window.localStorage.removeItem(LEGACY_ONBOARDING_STORAGE_KEY);
 };
 
 export const slugifyForDomain = (name: string): string => {

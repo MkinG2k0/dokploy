@@ -3,6 +3,9 @@ import Docker from "dockerode";
 
 export const IS_CLOUD = process.env.IS_CLOUD === "true";
 
+/** Запись тестового сервера в онбординге DeployBox (без реального SSH). */
+export const ONBOARDING_TEST_SERVER_NAME = "Тестовый сервер";
+
 export const DOKPLOY_DOCKER_API_VERSION =
 	process.env.DOKPLOY_DOCKER_API_VERSION;
 export const DOKPLOY_DOCKER_HOST = process.env.DOKPLOY_DOCKER_HOST;

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { TerminalLine } from "@/components/dashboard/docker/logs/terminal-line";
-import { type LogLine, parseLogs } from "@/components/dashboard/docker/logs/utils";
+import {
+	type LogLine,
+	parseLogs,
+} from "@/components/dashboard/docker/logs/utils";
 
 interface OnboardingDeployLogProps {
 	logPath: string | null;
