@@ -5,25 +5,60 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { Octokit } from "octokit";
 import { github } from "@/server/db/schema";
 
+const DEFAULT_RETURN_TO = "/dashboard/settings/git-providers";
+
 type Query = {
 	code: string;
 	state: string;
 	installation_id: string;
 	setup_action: string;
+	returnTo?: string;
+};
+
+const decodeReturnFromState = (
+	action: string,
+	rest: string[],
+): string | undefined => {
+	if (action === "gh_init" && rest.length > 2) {
+		const encoded = rest.slice(2).join(":");
+		try {
+			return decodeURIComponent(encoded);
+		} catch {
+			return undefined;
+		}
+	}
+	if (action === "gh_setup" && rest.length > 1) {
+		const encoded = rest.slice(1).join(":");
+		try {
+			return decodeURIComponent(encoded);
+		} catch {
+			return undefined;
+		}
+	}
+	return undefined;
 };
 
 export default async function handler(
 	req: NextApiRequest,
 	res: NextApiResponse,
 ) {
-	const { code, state, installation_id }: Query = req.query as Query;
+	const { code, state, installation_id, returnTo }: Query = req.query as Query;
 
 	if (!code) {
 		return res.status(400).json({ error: "Missing code parameter" });
 	}
-	const [action, ...rest] = state?.split(":");
-	// For gh_init: rest[0] = organizationId, rest[1] = userId
-	// For gh_setup: rest[0] = githubProviderId
+	const [action, ...rest] = state?.split(":") ?? [];
+	// For gh_init: rest[0] = organizationId, rest[1] = userId, rest[2+] = encodeURIComponent(returnPath)
+	// For gh_setup: rest[0] = githubProviderId, rest[1+] = encodeURIComponent(returnPath)
+
+	const returnFromState =
+		typeof action === "string"
+			? decodeReturnFromState(action, rest)
+			: undefined;
+	const destination =
+		(typeof returnTo === "string" && returnTo.length > 0
+			? returnTo
+			: returnFromState) || DEFAULT_RETURN_TO;
 
 	if (action === "gh_init") {
 		const organizationId = rest[0];
@@ -64,5 +99,5 @@ export default async function handler(
 			.returning();
 	}
 
-	res.redirect(307, "/dashboard/settings/git-providers");
+	res.redirect(307, destination);
 }

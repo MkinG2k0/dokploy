@@ -1,80 +1,79 @@
-import { IS_CLOUD } from '@dokploy/server/constants'
-import { validateRequest } from '@dokploy/server/lib/auth'
-import { createServerSideHelpers } from '@trpc/react-query/server'
-import type { GetServerSidePropsContext } from 'next'
-import type { ReactElement } from 'react'
-import superjson from 'superjson'
-import SwarmMonitorCard from '@/components/dashboard/swarm/monitoring-card'
-import { DashboardLayout } from '@/components/layouts/dashboard-layout'
-import { appRouter } from '@/server/api/root'
-import { isSuperAdmin } from '../../server/api/utils/audit'
+import { IS_CLOUD } from "@dokploy/server/constants";
+import { validateRequest } from "@dokploy/server/lib/auth";
+import { createServerSideHelpers } from "@trpc/react-query/server";
+import type { GetServerSidePropsContext } from "next";
+import type { ReactElement } from "react";
+import superjson from "superjson";
+import SwarmMonitorCard from "@/components/dashboard/swarm/monitoring-card";
+import { DashboardLayout } from "@/components/layouts/dashboard-layout";
+import { appRouter } from "@/server/api/root";
+import { isSuperAdmin } from "../../server/api/utils/audit";
 
 const Dashboard = () => {
-	return <SwarmMonitorCard/>
-}
+  return <SwarmMonitorCard />;
+};
 
-export default Dashboard
+export default Dashboard;
 
 Dashboard.getLayout = (page: ReactElement) => {
-	return <DashboardLayout pageTitleKey="swarm">{page}</DashboardLayout>
-}
+  return <DashboardLayout pageTitleKey="swarm">{page}</DashboardLayout>;
+};
 
 export async function getServerSideProps(
-	ctx: GetServerSidePropsContext<{ serviceId: string }>,
+  ctx: GetServerSidePropsContext<{ serviceId: string }>,
 ) {
+  const { user, session } = await validateRequest(ctx.req);
+  if (!user) {
+    return {
+      redirect: {
+        permanent: true,
+        destination: "/",
+      },
+    };
+  }
+  if (IS_CLOUD && !isSuperAdmin(user)) {
+    return {
+      redirect: {
+        permanent: true,
+        destination: "/dashboard/projects",
+      },
+    };
+  }
 
-	const {user, session} = await validateRequest(ctx.req)
-	if (!user) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: '/',
-			},
-		}
-	}
-	if (IS_CLOUD && !isSuperAdmin(user)) {
-		return {
-			redirect: {
-				permanent: true,
-				destination: '/dashboard/projects',
-			},
-		}
-	}
+  const { req, res } = ctx;
 
-	const {req, res} = ctx
+  const helpers = createServerSideHelpers({
+    router: appRouter,
+    ctx: {
+      req: req as any,
+      res: res as any,
+      db: null as any,
+      session: session as any,
+      user: user as any,
+    },
+    transformer: superjson,
+  });
+  try {
+    await helpers.project.all.prefetch();
 
-	const helpers = createServerSideHelpers({
-		router: appRouter,
-		ctx: {
-			req: req as any,
-			res: res as any,
-			db: null as any,
-			session: session as any,
-			user: user as any,
-		},
-		transformer: superjson,
-	})
-	try {
-		await helpers.project.all.prefetch()
+    const userPermissions = await helpers.user.getPermissions.fetch();
 
-		const userPermissions = await helpers.user.getPermissions.fetch()
-
-		if (!userPermissions?.docker.read) {
-			return {
-				redirect: {
-					permanent: true,
-					destination: '/',
-				},
-			}
-		}
-		return {
-			props: {
-				trpcState: helpers.dehydrate(),
-			},
-		}
-	} catch {
-		return {
-			props: {},
-		}
-	}
+    if (!userPermissions?.docker.read) {
+      return {
+        redirect: {
+          permanent: true,
+          destination: "/",
+        },
+      };
+    }
+    return {
+      props: {
+        trpcState: helpers.dehydrate(),
+      },
+    };
+  } catch {
+    return {
+      props: {},
+    };
+  }
 }

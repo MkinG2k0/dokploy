@@ -165,7 +165,7 @@ export const MENU: Menu = {
       title: "dashboard.swarm",
       url: "/dashboard/swarm",
       icon: PieChart,
-      isEnabled: ({ auth }) => auth?.role === "admin" || auth?.role === "owner",
+      isEnabled: isRoleSuperAdmin,
     },
     {
       isSingle: true,
@@ -324,7 +324,6 @@ export function createMenuForAuthUser(opts: {
     supportUrl?: string | null;
   } | null;
 }): Menu {
-  console.log(opts);
   const filterEnabled = <
     T extends {
       isEnabled?: EnabledRule;

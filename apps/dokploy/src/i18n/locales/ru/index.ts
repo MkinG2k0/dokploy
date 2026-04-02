@@ -49,6 +49,7 @@ export { default as ruLoginPageMessages } from "./login-page.json";
 export { default as ruMonitoringDashboardMessages } from "./monitoring-dashboard.json";
 export { default as ruMonitoringPageMessages } from "./monitoring-page.json";
 export { default as ruOnboardingPageMessages } from "./onboarding-page.json";
+export { default as ruOnboardingWizardMessages } from "./onboarding-wizard.json";
 export { default as ruProjectComponentsMessages } from "./project-components.json";
 export { default as ruProductUpdatesPageMessages } from "./product-updates-page.json";
 export { default as ruProjectPageMessages } from "./project-page.json";

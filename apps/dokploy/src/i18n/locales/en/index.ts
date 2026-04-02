@@ -49,6 +49,7 @@ export { default as enLoginPageMessages } from "./login-page.json";
 export { default as enMonitoringDashboardMessages } from "./monitoring-dashboard.json";
 export { default as enMonitoringPageMessages } from "./monitoring-page.json";
 export { default as enOnboardingPageMessages } from "./onboarding-page.json";
+export { default as enOnboardingWizardMessages } from "./onboarding-wizard.json";
 export { default as enProjectComponentsMessages } from "./project-components.json";
 export { default as enProductUpdatesPageMessages } from "./product-updates-page.json";
 export { default as enProjectPageMessages } from "./project-page.json";

@@ -23,6 +23,7 @@ import { mongoRouter } from "./routers/mongo";
 import { mountRouter } from "./routers/mount";
 import { mysqlRouter } from "./routers/mysql";
 import { notificationRouter } from "./routers/notification";
+import { onboardingRouter } from "./routers/onboarding";
 import { organizationRouter } from "./routers/organization";
 import { patchRouter } from "./routers/patch";
 import { portRouter } from "./routers/port";
@@ -91,6 +92,7 @@ export const appRouter = createTRPCRouter({
 	swarm: swarmRouter,
 	ai: aiRouter,
 	organization: organizationRouter,
+	onboarding: onboardingRouter,
 	licenseKey: licenseKeyRouter,
 	sso: ssoRouter,
 	whitelabeling: whitelabelingRouter,

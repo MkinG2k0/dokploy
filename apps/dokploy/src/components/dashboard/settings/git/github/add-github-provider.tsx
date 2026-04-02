@@ -1,71 +1,93 @@
-import { format } from "date-fns";
-import { useEffect, useState } from "react";
-import { GithubIcon } from "@/components/icons/data-tools-icons";
-import { Button } from "@/components/ui/button";
-import { CardContent } from "@/components/ui/card";
+import { format } from 'date-fns'
+import { useEffect, useMemo, useState } from 'react'
+import { GithubIcon } from '@/components/icons/data-tools-icons'
+import { Button } from '@/components/ui/button'
+import { CardContent } from '@/components/ui/card'
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { api } from "@/utils/api";
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { api } from '@/utils/api'
 
-export const AddGithubProvider = () => {
-	const [isOpen, setIsOpen] = useState(false);
-	const { data: activeOrganization } = api.organization.active.useQuery();
+export interface AddGithubProviderProps {
+	/** Relative path (e.g. `/onboarding`) after GitHub App setup; must start with `/`. */
+	afterSetupRedirect?: string;
+}
 
-	const { data: session } = api.user.session.useQuery();
-	const { data } = api.user.get.useQuery();
-	const [manifest, setManifest] = useState("");
-	const [isOrganization, setIsOrganization] = useState(false);
-	const [organizationName, setOrganization] = useState("");
+export const AddGithubProvider = ({
+	afterSetupRedirect,
+}: AddGithubProviderProps) => {
+	const [isOpen, setIsOpen] = useState(false)
+	const {data: activeOrganization} = api.organization.active.useQuery()
 
-	const randomString = () => Math.random().toString(36).slice(2, 8);
+	const {data: session} = api.user.session.useQuery()
+	const [manifest, setManifest] = useState('')
+	const [isOrganization, setIsOrganization] = useState(false)
+	const [organizationName, setOrganization] = useState('')
+
+	const randomString = () => Math.random().toString(36).slice(2, 8)
+
+	const ghInitState = useMemo(() => {
+		const oid = activeOrganization?.id ?? ''
+		const uid = session?.user?.id ?? ''
+		const base = `gh_init:${oid}:${uid}`
+		if (!afterSetupRedirect) return base
+		return `${base}:${encodeURIComponent(afterSetupRedirect)}`
+	}, [activeOrganization?.id, session?.user?.id, afterSetupRedirect])
 
 	useEffect(() => {
-		const url = document.location.origin;
+		const origin = document.location.origin
+		const params = new URLSearchParams({
+			organizationId: activeOrganization?.id ?? '',
+			userId: session?.user?.id ?? '',
+		})
+		if (afterSetupRedirect) {
+			params.set('returnTo', afterSetupRedirect)
+		}
+		const setupQuery = params.toString()
 		const manifest = JSON.stringify(
 			{
-				redirect_url: `${origin}/api/providers/github/setup?organizationId=${activeOrganization?.id ?? ""}&userId=${session?.user?.id ?? ""}`,
-				name: `Dokploy-${format(new Date(), "yyyy-MM-dd")}-${randomString()}`,
+				redirect_url: `${origin}/api/providers/github/setup?${setupQuery}`,
+				name: `Dokploy-${format(new Date(), 'yyyy-MM-dd')}-${randomString()}`,
 				url: origin,
 				hook_attributes: {
-					url: `${url}/api/deploy/github`,
+					url: `${origin}/api/deploy/github`,
 				},
 				callback_urls: [`${origin}/api/providers/github/setup`],
 				public: false,
 				request_oauth_on_install: true,
 				default_permissions: {
-					contents: "read",
-					metadata: "read",
-					emails: "read",
-					pull_requests: "write",
+					contents: 'read',
+					metadata: 'read',
+					emails: 'read',
+					pull_requests: 'write',
 				},
-				default_events: ["pull_request", "push"],
+				default_events: ['pull_request', 'push'],
 			},
 			null,
 			4,
-		);
+		)
 
-		setManifest(manifest);
-	}, [activeOrganization?.id, session?.user?.id]);
+		setManifest(manifest)
+	}, [activeOrganization?.id, session?.user?.id, afterSetupRedirect])
 
 	return (
 		<Dialog open={isOpen} onOpenChange={setIsOpen}>
 			<DialogTrigger asChild>
 				<Button variant="secondary" className="flex items-center space-x-1">
-					<GithubIcon className="text-current fill-current" />
+					<GithubIcon className="text-current fill-current"/>
 					<span>Github</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl ">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						Github Provider <GithubIcon className="size-5" />
+						Github Provider <GithubIcon className="size-5"/>
 					</DialogTitle>
 				</DialogHeader>
 
@@ -98,8 +120,8 @@ export const AddGithubProvider = () => {
 							<form
 								action={
 									isOrganization
-										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=gh_init:${activeOrganization?.id}:${session?.user?.id ?? ""}`
-										: `https://github.com/settings/apps/new?state=gh_init:${activeOrganization?.id}:${session?.user?.id ?? ""}`
+										? `https://github.com/organizations/${organizationName}/settings/apps/new?state=${encodeURIComponent(ghInitState)}`
+										: `https://github.com/settings/apps/new?state=${encodeURIComponent(ghInitState)}`
 								}
 								method="post"
 							>
@@ -110,21 +132,21 @@ export const AddGithubProvider = () => {
 									defaultValue={manifest}
 									className="invisible"
 								/>
-								<br />
+								<br/>
 
 								<div className="flex w-full items-center justify-between">
 									<a
 										href={
 											isOrganization && organizationName
 												? `https://github.com/organizations/${organizationName}/settings/installations`
-												: "https://github.com/settings/installations"
+												: 'https://github.com/settings/installations'
 										}
 										className={`text-muted-foreground text-sm hover:underline duration-300
 											 ${
-													isOrganization && !organizationName
-														? "pointer-events-none opacity-50"
-														: ""
-												}`}
+											isOrganization && !organizationName
+												? 'pointer-events-none opacity-50'
+												: ''
+										}`}
 										target="_blank"
 										rel="noopener noreferrer"
 									>
@@ -144,5 +166,5 @@ export const AddGithubProvider = () => {
 				</div>
 			</DialogContent>
 		</Dialog>
-	);
-};
+	)
+}

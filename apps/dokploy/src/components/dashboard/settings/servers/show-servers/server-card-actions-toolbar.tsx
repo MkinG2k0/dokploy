@@ -36,7 +36,9 @@ export const ServerCardActionsToolbar = ({
 			<div className="flex w-full items-center gap-2">
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<SetupServer serverId={server.serverId} />
+						<div>
+							<SetupServer asButton serverId={server.serverId} />
+						</div>
 					</TooltipTrigger>
 					<TooltipContent className="max-w-xs" side="bottom">
 						<div className="space-y-1">

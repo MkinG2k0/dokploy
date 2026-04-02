@@ -1,58 +1,58 @@
-import { formatDate } from "date-fns";
+import { formatDate } from 'date-fns'
 import {
 	ExternalLinkIcon,
 	GitBranch,
 	ImportIcon,
 	Loader2,
 	Trash2,
-} from "lucide-react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
-import { toast } from "sonner";
+} from 'lucide-react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { toast } from 'sonner'
 import {
 	BitbucketIcon,
 	GiteaIcon,
 	GithubIcon,
 	GitlabIcon,
-} from "@/components/icons/data-tools-icons";
-import { DialogAction } from "@/components/shared/dialog-action";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+} from '@/components/icons/data-tools-icons'
+import { DialogAction } from '@/components/shared/dialog-action'
+import { Badge } from '@/components/ui/badge'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "@/components/ui/card";
-import { api } from "@/utils/api";
-import { useUrl } from "@/utils/hooks/use-url";
-import { AddBitbucketProvider } from "./bitbucket/add-bitbucket-provider";
-import { EditBitbucketProvider } from "./bitbucket/edit-bitbucket-provider";
-import { AddGiteaProvider } from "./gitea/add-gitea-provider";
-import { EditGiteaProvider } from "./gitea/edit-gitea-provider";
-import { AddGithubProvider } from "./github/add-github-provider";
-import { EditGithubProvider } from "./github/edit-github-provider";
-import { AddGitlabProvider } from "./gitlab/add-gitlab-provider";
-import { EditGitlabProvider } from "./gitlab/edit-gitlab-provider";
+} from '@/components/ui/card'
+import { api } from '@/utils/api'
+import { useUrl } from '@/utils/hooks/use-url'
+import { AddBitbucketProvider } from './bitbucket/add-bitbucket-provider'
+import { EditBitbucketProvider } from './bitbucket/edit-bitbucket-provider'
+import { AddGiteaProvider } from './gitea/add-gitea-provider'
+import { EditGiteaProvider } from './gitea/edit-gitea-provider'
+import { AddGithubProvider } from './github/add-github-provider'
+import { EditGithubProvider } from './github/edit-github-provider'
+import { AddGitlabProvider } from './gitlab/add-gitlab-provider'
+import { EditGitlabProvider } from './gitlab/edit-gitlab-provider'
 
 export const ShowGitProviders = () => {
-	const t = useTranslations("settingsGitProviders");
-	const { data, isPending, refetch } = api.gitProvider.getAll.useQuery();
-	const { mutateAsync, isPending: isRemoving } =
-		api.gitProvider.remove.useMutation();
-	const url = useUrl();
+	const t = useTranslations('settingsGitProviders')
+	const {data, isPending, refetch} = api.gitProvider.getAll.useQuery()
+	const {mutateAsync, isPending: isRemoving} =
+		api.gitProvider.remove.useMutation()
+	const url = useUrl()
 
 	const getGitlabUrl = (
 		clientId: string,
 		gitlabId: string,
 		gitlabUrl: string,
 	) => {
-		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`;
-		const scope = "api read_user read_repository";
-		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}`;
-		return authUrl;
-	};
+		const redirectUri = `${url}/api/providers/gitlab/callback?gitlabId=${gitlabId}`
+		const scope = 'api read_user read_repository'
+		const authUrl = `${gitlabUrl}/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scopes=${encodeURIComponent(scope)}`
+		return authUrl
+	}
 
 	return (
 		<div className="flex flex-1 flex-col w-full">
@@ -60,32 +60,32 @@ export const ShowGitProviders = () => {
 				<div className="flex flex-1 flex-col rounded-xl bg-background shadow-md ">
 					<CardHeader className="">
 						<CardTitle className="text-xl flex flex-row gap-2">
-							<GitBranch className="size-6 text-muted-foreground self-center" />
-							{t("title")}
+							<GitBranch className="size-6 text-muted-foreground self-center"/>
+							{t('title')}
 						</CardTitle>
-						<CardDescription>{t("description")}</CardDescription>
+						<CardDescription>{t('description')}</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 py-8 border-t">
 						{isPending ? (
 							<div className="flex flex-row gap-2 items-center justify-center text-sm text-muted-foreground min-h-[25vh]">
-								<span>{t("loading")}</span>
-								<Loader2 className="animate-spin size-4" />
+								<span>{t('loading')}</span>
+								<Loader2 className="animate-spin size-4"/>
 							</div>
 						) : (
 							<>
 								{data?.length === 0 ? (
 									<div className="flex flex-col items-center gap-3 min-h-[25vh] justify-center">
-										<GitBranch className="size-8 self-center text-muted-foreground" />
+										<GitBranch className="size-8 self-center text-muted-foreground"/>
 										<span className="text-base text-muted-foreground text-center">
-											{t("emptyState")}
-										</span>
+                      {t('emptyState')}
+                    </span>
 										<div>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddGithubProvider />
-													<AddGitlabProvider />
-													<AddBitbucketProvider />
-													<AddGiteaProvider />
+													<AddGithubProvider/>
+													<AddGitlabProvider/>
+													<AddBitbucketProvider/>
+													<AddGiteaProvider/>
 												</div>
 											</div>
 										</div>
@@ -93,37 +93,37 @@ export const ShowGitProviders = () => {
 								) : (
 									<div className="flex flex-col gap-4 min-h-[25vh]">
 										<div className="flex flex-col gap-2 rounded-lg ">
-											<span className="text-base font-medium">
-												{t("availableProviders")}
-											</span>
+                      <span className="text-base font-medium">
+                        {t('availableProviders')}
+                      </span>
 											<div className="flex items-center bg-sidebar p-1 w-full rounded-lg">
 												<div className="flex flex-wrap items-center gap-4 p-3.5 rounded-lg bg-background border w-full [&>button]:grow">
-													<AddGithubProvider />
-													<AddGitlabProvider />
-													<AddBitbucketProvider />
-													<AddGiteaProvider />
+													<AddGithubProvider/>
+													<AddGitlabProvider/>
+													<AddBitbucketProvider/>
+													<AddGiteaProvider/>
 												</div>
 											</div>
 										</div>
 
 										<div className="flex flex-col gap-4 rounded-lg ">
 											{data?.map((gitProvider, _index) => {
-												const isGithub = gitProvider.providerType === "github";
-												const isGitlab = gitProvider.providerType === "gitlab";
+												const isGithub = gitProvider.providerType === 'github'
+												const isGitlab = gitProvider.providerType === 'gitlab'
 												const isBitbucket =
-													gitProvider.providerType === "bitbucket";
-												const isGitea = gitProvider.providerType === "gitea";
+													gitProvider.providerType === 'bitbucket'
+												const isGitea = gitProvider.providerType === 'gitea'
 
 												const haveGithubRequirements =
 													isGithub &&
 													gitProvider.github?.githubPrivateKey &&
 													gitProvider.github?.githubAppId &&
-													gitProvider.github?.githubInstallationId;
+													gitProvider.github?.githubInstallationId
 
 												const haveGitlabRequirements =
 													isGitlab &&
 													gitProvider.gitlab?.accessToken &&
-													gitProvider.gitlab?.refreshToken;
+													gitProvider.gitlab?.refreshToken
 
 												return (
 													<div
@@ -134,25 +134,25 @@ export const ShowGitProviders = () => {
 															<div className="flex flex-col items-center justify-between">
 																<div className="flex gap-2 flex-row items-center">
 																	{isGithub && (
-																		<GithubIcon className="size-5" />
+																		<GithubIcon className="size-5"/>
 																	)}
 																	{isGitlab && (
-																		<GitlabIcon className="size-5" />
+																		<GitlabIcon className="size-5"/>
 																	)}
 																	{isBitbucket && (
-																		<BitbucketIcon className="size-5" />
+																		<BitbucketIcon className="size-5"/>
 																	)}
-																	{isGitea && <GiteaIcon className="size-5" />}
+																	{isGitea && <GiteaIcon className="size-5"/>}
 																	<div className="flex flex-col gap-1">
-																		<span className="text-sm font-medium">
-																			{gitProvider.name}
-																		</span>
+                                    <span className="text-sm font-medium">
+                                      {gitProvider.name}
+                                    </span>
 																		<span className="text-xs text-muted-foreground">
-																			{formatDate(
+                                      {formatDate(
 																				gitProvider.createdAt,
-																				"yyyy-MM-dd hh:mm:ss a",
+																				'yyyy-MM-dd hh:mm:ss a',
 																			)}
-																		</span>
+                                    </span>
 																	</div>
 																</div>
 															</div>
@@ -162,7 +162,7 @@ export const ShowGitProviders = () => {
 																gitProvider.bitbucket?.appPassword &&
 																!gitProvider.bitbucket?.apiToken ? (
 																	<Badge variant="yellow">
-																		{t("deprecated")}
+																		{t('deprecated')}
 																	</Badge>
 																) : null}
 
@@ -172,16 +172,16 @@ export const ShowGitProviders = () => {
 																			variant="outline"
 																			className="text-xs"
 																		>
-																			{t("actionRequired")}
+																			{t('actionRequired')}
 																		</Badge>
 																		<Link
 																			href={`${gitProvider?.github?.githubAppName}/installations/new?state=gh_setup:${gitProvider?.github.githubId}`}
 																			className={buttonVariants({
-																				size: "icon",
-																				variant: "ghost",
+																				size: 'icon',
+																				variant: 'ghost',
 																			})}
 																		>
-																			<ImportIcon className="size-4 text-primary" />
+																			<ImportIcon className="size-4 text-primary"/>
 																		</Link>
 																	</div>
 																)}
@@ -191,11 +191,11 @@ export const ShowGitProviders = () => {
 																			href={`${gitProvider?.github?.githubAppName}`}
 																			target="_blank"
 																			className={buttonVariants({
-																				size: "icon",
-																				variant: "ghost",
+																				size: 'icon',
+																				variant: 'ghost',
 																			})}
 																		>
-																			<ExternalLinkIcon className="size-4 text-primary" />
+																			<ExternalLinkIcon className="size-4 text-primary"/>
 																		</Link>
 																	</div>
 																)}
@@ -205,21 +205,21 @@ export const ShowGitProviders = () => {
 																			variant="outline"
 																			className="text-xs"
 																		>
-																			{t("actionRequired")}
+																			{t('actionRequired')}
 																		</Badge>
 																		<Link
 																			href={getGitlabUrl(
-																				gitProvider.gitlab?.applicationId || "",
-																				gitProvider.gitlab?.gitlabId || "",
+																				gitProvider.gitlab?.applicationId || '',
+																				gitProvider.gitlab?.gitlabId || '',
 																				gitProvider.gitlab?.gitlabUrl,
 																			)}
 																			target="_blank"
 																			className={buttonVariants({
-																				size: "icon",
-																				variant: "ghost",
+																				size: 'icon',
+																				variant: 'ghost',
 																			})}
 																		>
-																			<ImportIcon className="size-4 text-primary" />
+																			<ImportIcon className="size-4 text-primary"/>
 																		</Link>
 																	</div>
 																)}
@@ -251,20 +251,20 @@ export const ShowGitProviders = () => {
 																)}
 
 																<DialogAction
-																	title={t("deleteTitle")}
-																	description={t("deleteDescription")}
+																	title={t('deleteTitle')}
+																	description={t('deleteDescription')}
 																	type="destructive"
 																	onClick={async () => {
 																		await mutateAsync({
 																			gitProviderId: gitProvider.gitProviderId,
 																		})
 																			.then(() => {
-																				toast.success(t("deletedSuccess"));
-																				refetch();
+																				toast.success(t('deletedSuccess'))
+																				refetch()
 																			})
 																			.catch(() => {
-																				toast.error(t("deleteError"));
-																			});
+																				toast.error(t('deleteError'))
+																			})
 																	}}
 																>
 																	<Button
@@ -273,13 +273,13 @@ export const ShowGitProviders = () => {
 																		className="group hover:bg-red-500/10"
 																		isLoading={isRemoving}
 																	>
-																		<Trash2 className="size-4 text-primary group-hover:text-red-500" />
+																		<Trash2 className="size-4 text-primary group-hover:text-red-500"/>
 																	</Button>
 																</DialogAction>
 															</div>
 														</div>
 													</div>
-												);
+												)
 											})}
 										</div>
 
@@ -294,5 +294,5 @@ export const ShowGitProviders = () => {
 				</div>
 			</Card>
 		</div>
-	);
-};
+	)
+}

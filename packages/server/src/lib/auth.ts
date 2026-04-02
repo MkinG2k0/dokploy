@@ -1,71 +1,71 @@
-import type { IncomingMessage } from "node:http";
-import { apiKey } from "@better-auth/api-key";
-import { sso } from "@better-auth/sso";
-import * as bcrypt from "bcrypt";
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { APIError } from "better-auth/api";
-import { admin, organization, twoFactor } from "better-auth/plugins";
-import { and, desc, eq } from "drizzle-orm";
-import { BETTER_AUTH_SECRET, IS_CLOUD } from "../constants";
-import { db } from "../db";
-import * as schema from "../db/schema";
+import type { IncomingMessage } from 'node:http'
+import { apiKey } from '@better-auth/api-key'
+import { sso } from '@better-auth/sso'
+import * as bcrypt from 'bcrypt'
+import { betterAuth } from 'better-auth'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { APIError } from 'better-auth/api'
+import { admin, organization, twoFactor } from 'better-auth/plugins'
+import { and, desc, eq } from 'drizzle-orm'
+import { BETTER_AUTH_SECRET, IS_CLOUD } from '../constants'
+import { db } from '../db'
+import * as schema from '../db/schema'
 import {
 	getTrustedOrigins,
 	getTrustedProviders,
 	getUserByToken,
-} from "../services/admin";
-import { createAuditLog } from "../services/proprietary/audit-log";
+} from '../services/admin'
+import { createAuditLog } from '../services/proprietary/audit-log'
 import {
 	getWebServerSettings,
 	updateWebServerSettings,
-} from "../services/web-server-settings";
-import { getHubSpotUTK, submitToHubSpot } from "../utils/tracking/hubspot";
-import { sendEmail } from "../verification/send-verification-email";
-import { getPublicIpWithFallback } from "../wss/utils";
-import { ac, adminRole, memberRole, ownerRole } from "./access-control";
-import { logger } from "./logger";
+} from '../services/web-server-settings'
+import { getHubSpotUTK, submitToHubSpot } from '../utils/tracking/hubspot'
+import { sendEmail } from '../verification/send-verification-email'
+import { getPublicIpWithFallback } from '../wss/utils'
+import { ac, adminRole, memberRole, ownerRole } from './access-control'
+import { logger } from './logger'
 
-const IS_DEVELOPMENT = process.env.NODE_ENV === "development";
-const HAS_SMTP_SERVER = Boolean(process.env.SMTP_SERVER?.trim());
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development'
+const HAS_SMTP_SERVER = Boolean(process.env.SMTP_SERVER?.trim())
 
-const { handler, api } = betterAuth({
+const {handler, api} = betterAuth({
 	database: drizzleAdapter(db, {
-		provider: "pg",
+		provider: 'pg',
 		schema: schema,
 	}),
 	disabledPaths: [
-		"/sso/register",
-		"/organization/create",
-		"/organization/update",
-		"/organization/delete",
+		'/sso/register',
+		'/organization/create',
+		'/organization/update',
+		'/organization/delete',
 	],
 	secret: BETTER_AUTH_SECRET,
 	...(!IS_CLOUD
 		? {
-				advanced: {
-					useSecureCookies: false,
-					defaultCookieAttributes: {
-						sameSite: "lax",
-						secure: false,
-						httpOnly: true,
-						path: "/",
-					},
+			advanced: {
+				useSecureCookies: false,
+				defaultCookieAttributes: {
+					sameSite: 'lax',
+					secure: false,
+					httpOnly: true,
+					path: '/',
 				},
-			}
+			},
+		}
 		: {}),
 
 	account: {
 		accountLinking: {
 			enabled: true,
 			async trustedProviders() {
-				const fromDb = await getTrustedProviders();
-				return ["github", "google", ...fromDb];
+				const fromDb = await getTrustedProviders()
+				return ['github', 'google', ...fromDb]
 			},
 			allowDifferentEmails: true,
 		},
 	},
-	appName: "Dokploy",
+	appName: 'Dokploy',
 	socialProviders: {
 		github: {
 			clientId: process.env.GITHUB_CLIENT_ID as string,
@@ -77,77 +77,77 @@ const { handler, api } = betterAuth({
 		},
 	},
 	logger: {
-		disabled: process.env.NODE_ENV === "production",
+		disabled: process.env.NODE_ENV === 'production',
 	},
 	async trustedOrigins() {
 		try {
 			if (IS_CLOUD) {
-				return await getTrustedOrigins();
+				return await getTrustedOrigins()
 			}
 			const [trustedOrigins, settings] = await Promise.all([
 				getTrustedOrigins(),
 				getWebServerSettings(),
-			]);
-			if (!settings) return [];
+			])
+			if (!settings) return []
 			const devOrigins =
-				process.env.NODE_ENV === "development"
+				process.env.NODE_ENV === 'development'
 					? [
-							"http://localhost:3000",
-							"https://absolutely-handy-falcon.ngrok-free.app",
-						]
-					: [];
+						'http://localhost:3000',
+						'https://absolutely-handy-falcon.ngrok-free.app',
+					]
+					: []
 			return [
 				...(settings?.serverIp ? [`http://${settings?.serverIp}:3000`] : []),
 				...(settings?.host ? [`https://${settings?.host}`] : []),
 				...devOrigins,
 				...trustedOrigins,
-			];
+			]
 		} catch (error) {
-			console.error("Failed to resolve trusted origins:", error);
-			return [];
+			console.error('Failed to resolve trusted origins:', error)
+			return []
 		}
 	},
 	emailVerification: {
 		sendOnSignUp: true,
 		autoSignInAfterVerification: true,
-		sendVerificationEmail: async ({ user, url }) => {
-			if (!IS_CLOUD) return;
+		sendVerificationEmail: async ({user, url}) => {
+			if (!IS_CLOUD) return
 			if (IS_DEVELOPMENT && !HAS_SMTP_SERVER) {
 				logger.warn(
-					{ email: user.email, verifyUrl: url },
-					"IS_CLOUD dev: SMTP_SERVER not set; skipping verification email. Open verifyUrl to verify the account.",
-				);
-				return;
+					{email: user.email, verifyUrl: url},
+					'IS_CLOUD dev: SMTP_SERVER not set; skipping verification email. Open verifyUrl to verify the account.',
+				)
+				return
 			}
 			await sendEmail({
 				email: user.email,
-				subject: "Verify your email",
+				subject: 'Verify your email',
 				text: `
 				<p>Click the link to verify your email: <a href="${url}">Verify Email</a></p>
 				`,
-			});
+			})
 		},
 	},
 	emailAndPassword: {
 		enabled: true,
 		autoSignIn: !IS_CLOUD,
-		requireEmailVerification: IS_CLOUD && process.env.NODE_ENV === "production",
+		requireEmailVerification: IS_CLOUD && process.env.NODE_ENV === 'production',
 		password: {
 			async hash(password) {
-				return bcrypt.hashSync(password, 10);
+				return bcrypt.hashSync(password, 10)
 			},
-			async verify({ hash, password }) {
-				return bcrypt.compareSync(password, hash);
+			async verify({hash, password}) {
+				return bcrypt.compareSync(password, hash)
 			},
 		},
-		sendResetPassword: async ({ user, url }) => {
+		sendResetPassword: async ({user, url}) => {
 			await sendEmail({
 				email: user.email,
-				subject: "Reset your password",
+				subject: 'Reset your password',
 				text: `
 				<p>Click the link to reset your password: <a href="${url}">Reset Password</a></p>
 				`,
-			});
+			})
 		},
 	},
 	databaseHooks: {
@@ -156,64 +156,68 @@ const { handler, api } = betterAuth({
 				before: async (_user, context) => {
 					if (!IS_CLOUD) {
 						const xDokployToken =
-							context?.request?.headers?.get("x-dokploy-token");
+							context?.request?.headers?.get('x-dokploy-token')
 						if (xDokployToken) {
-							const user = await getUserByToken(xDokployToken);
+							const user = await getUserByToken(xDokployToken)
 							if (!user) {
-								throw new APIError("BAD_REQUEST", {
-									message: "User not found",
-								});
+								throw new APIError('BAD_REQUEST', {
+									message: 'User not found',
+								})
 							}
 						} else {
-							const isSSORequest = context?.path.includes("/sso");
+							const isSSORequest = context?.path.includes('/sso')
 							if (isSSORequest) {
-								return;
+								return
 							}
 							const isAdminPresent = await db.query.member.findFirst({
-								where: eq(schema.member.role, "owner"),
-							});
+								where: eq(schema.member.role, 'owner'),
+							})
 							if (isAdminPresent) {
-								throw new APIError("BAD_REQUEST", {
-									message: "Admin is already created",
-								});
+								throw new APIError('BAD_REQUEST', {
+									message: 'Admin is already created',
+								})
 							}
 						}
 					}
 				},
 				after: async (user, context) => {
-					const isSSORequest = context?.path.includes("/sso");
+					const isSSORequest = context?.path.includes('/sso')
 					const isAdminPresent = await db.query.member.findFirst({
-						where: eq(schema.member.role, "owner"),
-					});
+						where: eq(schema.member.role, 'owner'),
+					})
 
 					if (!IS_CLOUD) {
+						await db
+							.update(schema.user)
+							.set({onboardingCompleted: true})
+							.where(eq(schema.user.id, user.id))
 						await updateWebServerSettings({
 							serverIp: await getPublicIpWithFallback(),
-						});
+						})
 					}
 
 					if (IS_CLOUD) {
 						try {
 							const hutk = getHubSpotUTK(
-								context?.request?.headers?.get("cookie") || undefined,
-							);
+								context?.request?.headers?.get('cookie') || undefined,
+							)
 							// Cast to include additional fields
 							const userWithFields = user as typeof user & {
 								lastName?: string;
-							};
+							}
 							const hubspotSuccess = await submitToHubSpot(
 								{
 									email: user.email,
-									firstName: user.name || "", // name is mapped to firstName column
-									lastName: userWithFields.lastName || "",
+									firstName: user.name || '', // name is mapped to firstName column
+									lastName: userWithFields.lastName || '',
 								},
 								hutk,
-							);
+							)
 							if (!hubspotSuccess) {
-								console.error("Failed to submit to HubSpot");
+								console.error('Failed to submit to HubSpot')
 							}
 						} catch (error) {
-							console.error("Error submitting to HubSpot", error);
+							console.error('Error submitting to HubSpot', error)
 						}
 					}
 
@@ -222,44 +226,44 @@ const { handler, api } = betterAuth({
 							const organization = await tx
 								.insert(schema.organization)
 								.values({
-									name: "My Organization",
+									name: 'My Organization',
 									ownerId: user.id,
 									createdAt: new Date(),
 								})
 								.returning()
-								.then((res) => res[0]);
+								.then((res) => res[0])
 
 							await tx.insert(schema.member).values({
 								userId: user.id,
-								organizationId: organization?.id || "",
-								role: "owner",
+								organizationId: organization?.id || '',
+								role: 'owner',
 								createdAt: new Date(),
 								isDefault: true, // Mark first organization as default
-							});
-						});
+							})
+						})
 					} else if (isSSORequest) {
-						const providerId = context?.params?.providerId;
+						const providerId = context?.params?.providerId
 						if (!providerId) {
-							throw new APIError("BAD_REQUEST", {
-								message: "Provider ID is required",
-							});
+							throw new APIError('BAD_REQUEST', {
+								message: 'Provider ID is required',
+							})
 						}
 						const provider = await db.query.ssoProvider.findFirst({
 							where: eq(schema.ssoProvider.providerId, providerId),
-						});
+						})
 
 						if (!provider) {
-							throw new APIError("BAD_REQUEST", {
-								message: "Provider not found",
-							});
+							throw new APIError('BAD_REQUEST', {
+								message: 'Provider not found',
+							})
 						}
 						await db.insert(schema.member).values({
 							userId: user.id,
-							organizationId: provider?.organizationId || "",
-							role: "member",
+							organizationId: provider?.organizationId || '',
+							role: 'member',
 							createdAt: new Date(),
 							isDefault: true,
-						});
+						})
 					}
 				},
 			},
@@ -278,60 +282,60 @@ const { handler, api } = betterAuth({
 						with: {
 							organization: true,
 						},
-					});
+					})
 
 					return {
 						data: {
 							...session,
 							activeOrganizationId: member?.organization.id,
 						},
-					};
+					}
 				},
 				after: async (session) => {
 					const orgId = (
 						session as typeof session & { activeOrganizationId?: string }
-					).activeOrganizationId;
-					if (!orgId) return;
+					).activeOrganizationId
+					if (!orgId) return
 					const memberRecord = await db.query.member.findFirst({
 						where: and(
 							eq(schema.member.userId, session.userId),
 							eq(schema.member.organizationId, orgId),
 						),
-						with: { user: true },
-					});
-					if (!memberRecord) return;
+						with: {user: true},
+					})
+					if (!memberRecord) return
 					await createAuditLog({
 						organizationId: orgId,
 						userId: session.userId,
 						userEmail: memberRecord.user.email,
 						userRole: memberRecord.role,
-						action: "login",
-						resourceType: "session",
-					});
+						action: 'login',
+						resourceType: 'session',
+					})
 				},
 			},
 			delete: {
 				after: async (session) => {
 					const orgId = (
 						session as typeof session & { activeOrganizationId?: string }
-					).activeOrganizationId;
-					if (!orgId) return;
+					).activeOrganizationId
+					if (!orgId) return
 					const memberRecord = await db.query.member.findFirst({
 						where: and(
 							eq(schema.member.userId, session.userId),
 							eq(schema.member.organizationId, orgId),
 						),
-						with: { user: true },
-					});
-					if (!memberRecord) return;
+						with: {user: true},
+					})
+					if (!memberRecord) return
 					await createAuditLog({
 						organizationId: orgId,
 						userId: session.userId,
 						userEmail: memberRecord.user.email,
 						userRole: memberRecord.role,
-						action: "logout",
-						resourceType: "session",
-					});
+						action: 'logout',
+						resourceType: 'session',
+					})
 				},
 			},
 		},
@@ -341,39 +345,39 @@ const { handler, api } = betterAuth({
 		updateAge: 60 * 60 * 24,
 	},
 	user: {
-		modelName: "user",
+		modelName: 'user',
 		fields: {
-			name: "firstName", // Map better-auth's default 'name' field to 'firstName' column
+			name: 'firstName', // Map better-auth's default 'name' field to 'firstName' column
 		},
 		additionalFields: {
 			role: {
-				type: "string",
+				type: 'string',
 				// required: true,
 				input: false,
 			},
 			ownerId: {
-				type: "string",
+				type: 'string',
 				// required: true,
 				input: false,
 			},
 			allowImpersonation: {
-				fieldName: "allowImpersonation",
-				type: "boolean",
+				fieldName: 'allowImpersonation',
+				type: 'boolean',
 				defaultValue: false,
 			},
 			lastName: {
-				type: "string",
+				type: 'string',
 				required: false,
 				input: true,
-				defaultValue: "",
+				defaultValue: '',
 			},
 			enableEnterpriseFeatures: {
-				type: "boolean",
+				type: 'boolean',
 				required: false,
 				input: false,
 			},
 			isValidEnterpriseLicense: {
-				type: "boolean",
+				type: 'boolean',
 				required: false,
 				input: false,
 			},
@@ -382,7 +386,7 @@ const { handler, api } = betterAuth({
 	plugins: [
 		apiKey({
 			enableMetadata: true,
-			references: "user",
+			references: 'user',
 		}),
 		sso(),
 		twoFactor(),
@@ -400,59 +404,59 @@ const { handler, api } = betterAuth({
 			async sendInvitationEmail(data, _request) {
 				if (IS_CLOUD) {
 					const host =
-						process.env.NODE_ENV === "development"
-							? "http://localhost:3000"
-							: "https://app.dokploy.com";
-					const inviteLink = `${host}/invitation?token=${data.id}`;
+						process.env.NODE_ENV === 'development'
+							? 'http://localhost:3000'
+							: 'https://app.dokploy.com'
+					const inviteLink = `${host}/invitation?token=${data.id}`
 
 					await sendEmail({
 						email: data.email,
-						subject: "Invitation to join organization",
+						subject: 'Invitation to join organization',
 						text: `
 					<p>You are invited to join ${data.organization.name} on Dokploy. Click the link to accept the invitation: <a href="${inviteLink}">Accept Invitation</a></p>
 					`,
-					});
+					})
 				}
 			},
 		}),
 		...(IS_CLOUD
 			? [
-					admin({
-						adminUserIds: [process.env.USER_ADMIN_ID as string],
-					}),
-				]
+				admin({
+					adminUserIds: [process.env.USER_ADMIN_ID as string],
+				}),
+			]
 			: []),
 	],
-});
+})
 
 const _auth = {
 	handler,
 	createApiKey: api.createApiKey,
 	registerSSOProvider: api.registerSSOProvider,
 	updateSSOProvider: api.updateSSOProvider,
-};
+}
 
 export type AuthType = typeof _auth;
-export const auth: AuthType = _auth;
+export const auth: AuthType = _auth
 
 export const validateRequest = async (request: IncomingMessage) => {
-	const apiKey = request.headers["x-api-key"] as string;
+	const apiKey = request.headers['x-api-key'] as string
 	if (apiKey) {
 		try {
-			const { valid, key, error } = await api.verifyApiKey({
+			const {valid, key, error} = await api.verifyApiKey({
 				body: {
 					key: apiKey,
 				},
-			});
+			})
 
 			if (error) {
-				throw new Error(error.message?.toString() || "Error verifying API key");
+				throw new Error(error.message?.toString() || 'Error verifying API key')
 			}
 			if (!valid || !key) {
 				return {
 					session: null,
 					user: null,
-				};
+				}
 			}
 
 			const apiKeyRecord = await db.query.apikey.findFirst({
@@ -460,24 +464,24 @@ export const validateRequest = async (request: IncomingMessage) => {
 				with: {
 					user: true,
 				},
-			});
+			})
 
 			if (!apiKeyRecord) {
 				return {
 					session: null,
 					user: null,
-				};
+				}
 			}
 
 			const organizationId = JSON.parse(
-				apiKeyRecord.metadata || "{}",
-			).organizationId;
+				apiKeyRecord.metadata || '{}',
+			).organizationId
 
 			if (!organizationId) {
 				return {
 					session: null,
 					user: null,
-				};
+				}
 			}
 
 			const member = await db.query.member.findFirst({
@@ -488,18 +492,18 @@ export const validateRequest = async (request: IncomingMessage) => {
 				with: {
 					organization: true,
 				},
-			});
+			})
 
 			// When accessing from DB, use actual column names
 			const userFromDb = apiKeyRecord.user as typeof apiKeyRecord.user & {
 				firstName: string;
 				lastName: string;
-			};
+			}
 
 			const mockSession = {
 				session: {
 					userId: apiKeyRecord.user.id,
-					activeOrganizationId: organizationId || "",
+					activeOrganizationId: organizationId || '',
 				},
 				user: {
 					id: userFromDb.id,
@@ -510,35 +514,35 @@ export const validateRequest = async (request: IncomingMessage) => {
 					createdAt: userFromDb.createdAt,
 					updatedAt: userFromDb.updatedAt,
 					twoFactorEnabled: userFromDb.twoFactorEnabled,
-					role: member?.role || "member",
+					role: member?.role || 'member',
 					ownerId: member?.organization.ownerId || apiKeyRecord.user.id,
 					enableEnterpriseFeatures: userFromDb.enableEnterpriseFeatures,
 					isValidEnterpriseLicense: userFromDb.isValidEnterpriseLicense,
 				},
-			};
+			}
 
-			return mockSession;
+			return mockSession
 		} catch (error) {
-			console.error("Error verifying API key", error);
+			console.error('Error verifying API key', error)
 			return {
 				session: null,
 				user: null,
-			};
+			}
 		}
 	}
 
 	// If no API key, proceed with normal session validation
 	const session = await api.getSession({
 		headers: new Headers({
-			cookie: request.headers.cookie || "",
+			cookie: request.headers.cookie || '',
 		}),
-	});
+	})
 
 	if (!session?.session || !session.user) {
 		return {
 			session: null,
 			user: null,
-		};
+		}
 	}
 
 	if (session?.user) {
@@ -547,11 +551,11 @@ export const validateRequest = async (request: IncomingMessage) => {
 				eq(schema.member.userId, session.user.id),
 				...(session.session.activeOrganizationId
 					? [
-							eq(
-								schema.member.organizationId,
-								session.session.activeOrganizationId || "",
-							),
-						]
+						eq(
+							schema.member.organizationId,
+							session.session.activeOrganizationId || '',
+						),
+					]
 					: []),
 			),
 			orderBy: [desc(schema.member.isDefault), desc(schema.member.createdAt)],
@@ -559,20 +563,20 @@ export const validateRequest = async (request: IncomingMessage) => {
 				organization: true,
 				user: true,
 			},
-		});
+		})
 
-		session.user.role = member?.role || "member";
+		session.user.role = member?.role || 'member'
 		session.user.enableEnterpriseFeatures =
-			member?.user.enableEnterpriseFeatures || false;
+			member?.user.enableEnterpriseFeatures || false
 		session.user.isValidEnterpriseLicense =
-			member?.user.isValidEnterpriseLicense || false;
-		session.session.activeOrganizationId = member?.organization.id || "";
+			member?.user.isValidEnterpriseLicense || false
+		session.session.activeOrganizationId = member?.organization.id || ''
 		if (member) {
-			session.user.ownerId = member.organization.ownerId;
+			session.user.ownerId = member.organization.ownerId
 		} else {
-			session.user.ownerId = session.user.id;
+			session.user.ownerId = session.user.id
 		}
 	}
 
-	return session;
-};
+	return session
+}
