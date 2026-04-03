@@ -553,6 +553,7 @@ export const payment = new TinkoffPayment({
   successUrl: `${appOrigin}${TINKOFF_RETURN_PATH}?status=success`,
   failUrl: `${appOrigin}${TINKOFF_RETURN_PATH}?status=fail`,
   notificationUrl: `${appOrigin}/api/webhooks/tinkoff`,
-  baseUrl: process.env.TINKOFF_API_BASE_URL!,
+  baseUrl:
+    process.env.TINKOFF_API_BASE_URL?.trim() || TINKOFF_API_BASE_URL_DEFAULT,
   defaultAddCardCheckType: "3DSHOLD",
 });
